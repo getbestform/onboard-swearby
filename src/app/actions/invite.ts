@@ -66,6 +66,7 @@ export async function sendInvite(prevState: InviteState, formData: FormData): Pr
 
 export type Invite = {
   id: string
+  token: string
   ownerName: string
   email: string
   entityName: string
@@ -73,6 +74,51 @@ export type Invite = {
   status: string
   expiresAt: string
   createdAt: string
+}
+
+export type DrugEntry = { drugName: string; doses: string; unitPrice: string; stateAvailability: string }
+
+export type InviteDetail = {
+  invite: Invite
+  draft: {
+    // business
+    businessName?: string; ein?: string; npi?: string
+    street?: string; city?: string; state?: string; zip?: string
+    phone?: string; website?: string
+    // prescribers
+    prescriberName?: string; dea?: string; license?: string; licenseState?: string; specialty?: string
+    // catalog
+    drugs?: DrugEntry[]
+    // billing
+    billingMode?: string; cardholderName?: string; cardNumber?: string
+    accountName?: string; routingNumber?: string; accountNumber?: string
+    // intake
+    displayName?: string; brandColor?: string; description?: string; yearsInPractice?: string; locations?: string
+  } | null
+}
+
+export async function getInviteDetail(token: string): Promise<InviteDetail | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  const headers = { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` }
+  const base = `${process.env.VERTI_API_URL}/api/partner-invites/${token}`
+  try {
+    const [inviteRes, draftRes] = await Promise.all([
+      fetch(base, { headers, cache: 'no-store' }),
+      fetch(`${base}/draft`, { headers, cache: 'no-store' }),
+    ])
+    if (!inviteRes.ok) return { error: inviteRes.status === 404 ? 'Invite not found.' : 'Failed to load invite.' }
+    const inviteData = await inviteRes.json()
+    const draftData = draftRes.ok ? await draftRes.json().catch(() => ({})) : {}
+    return {
+      invite: { ...inviteData, token },
+      draft: draftData?.data ?? null,
+    }
+  } catch (err) {
+    console.error('[getInviteDetail] fetch failed:', (err as Error)?.message)
+    return { error: 'Network error. Please try again.' }
+  }
 }
 
 export type ListInvitesResult =
@@ -151,6 +197,29 @@ export async function loadDraft(
   } catch (err) {
     console.error('[loadDraft] fetch failed:', (err as Error)?.message)
     return { error: 'Network error.' }
+  }
+}
+
+export async function submitApplication(
+  token: string,
+): Promise<{ success: true } | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  const url = `${process.env.VERTI_API_URL}/api/partner-invites/${token}/submit`
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      return { error: data?.error ?? 'Submission failed. Please try again.' }
+    }
+    return { success: true }
+  } catch (err) {
+    console.error('[submitApplication] fetch failed:', url, (err as Error)?.message)
+    return { error: 'Network error. Please try again.' }
   }
 }
 

@@ -25,67 +25,6 @@ const nav: NavItem[] = [
       </svg>
     ),
   },
-  {
-    label: 'Access',
-    href: '/access',
-    icon: ({ active }) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#1A3C2A' : '#6C7B70'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" fill={active ? '#1A3C2A' : 'none'} />
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Payment',
-    href: '/payment',
-    icon: ({ active }) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#1A3C2A' : '#6C7B70'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="5" width="20" height="14" rx="2" fill={active ? '#1A3C2A' : 'none'} />
-        <path d="M2 10h20" stroke={active ? '#FEF9F1' : '#6C7B70'} />
-      </svg>
-    ),
-  },
-  {
-    label: 'Agreements',
-    href: '/agreements',
-    icon: ({ active }) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#1A3C2A' : '#6C7B70'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill={active ? '#1A3C2A' : 'none'} />
-        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke={active ? '#FEF9F1' : '#6C7B70'} />
-      </svg>
-    ),
-  },
-  {
-    label: 'Drug Catalog',
-    href: '/drug-catalog',
-    icon: ({ active }) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#1A3C2A' : '#6C7B70'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" fill={active ? '#1A3C2A' : 'none'} />
-        <path d="M12 8v8M8 12h8" stroke={active ? '#FEF9F1' : '#6C7B70'} />
-      </svg>
-    ),
-  },
-  {
-    label: 'Intake',
-    href: '/intake',
-    icon: ({ active }) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#1A3C2A' : '#6C7B70'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" fill={active ? '#1A3C2A' : 'none'} />
-        <rect x="8" y="2" width="8" height="4" rx="1" fill={active ? '#1A3C2A' : 'none'} stroke={active ? '#1A3C2A' : '#6C7B70'} />
-        <path d="M9 12h6M9 16h4" stroke={active ? '#FEF9F1' : '#6C7B70'} />
-      </svg>
-    ),
-  },
-  {
-    label: 'Schedule',
-    href: '/schedule',
-    icon: ({ active }) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#1A3C2A' : '#6C7B70'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" fill={active ? '#1A3C2A' : 'none'} />
-        <path d="M16 2v4M8 2v4M3 10h18" stroke={active ? '#FEF9F1' : '#6C7B70'} />
-      </svg>
-    ),
-  },
 ]
 
 export default function Sidebar() {
@@ -100,7 +39,7 @@ export default function Sidebar() {
 
       <nav className="flex flex-col gap-1 px-3 flex-1">
         {nav.map(({ label, href, icon: Icon }) => {
-          const active = pathname === href
+          const active = pathname === href || pathname.startsWith(href + '/')
           return (
             <Link
               key={href}

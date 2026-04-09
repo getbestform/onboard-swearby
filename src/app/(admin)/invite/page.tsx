@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState, useEffect, useCallback, useTransition } from 'react'
+import Link from 'next/link'
 import { sendInvite, listInvites, type Invite } from '@/app/actions/invite'
 
 const entityTypes = ['LLC', 'PLLC', 'Corporation', 'PC', 'Partnership', 'Sole Proprietor', 'Other']
@@ -316,8 +317,17 @@ export default function InvitesPage() {
             ) : invites.map((inv) => (
               <tr key={inv.id} className="border-b border-secondary/8 hover:bg-secondary/5 transition-colors">
                 <td className="px-5 py-3.5">
-                  <p className="font-medium text-primary">{inv.ownerName}</p>
-                  <p className="text-xs text-secondary mt-0.5">{inv.email}</p>
+                  {inv.status === 'completed' ? (
+                    <Link href={`/invite/${inv.token}`} className="block group">
+                      <p className="font-medium text-primary group-hover:underline">{inv.ownerName}</p>
+                      <p className="text-xs text-secondary mt-0.5">{inv.email}</p>
+                    </Link>
+                  ) : (
+                    <>
+                      <p className="font-medium text-primary">{inv.ownerName}</p>
+                      <p className="text-xs text-secondary mt-0.5">{inv.email}</p>
+                    </>
+                  )}
                 </td>
                 <td className="px-5 py-3.5 text-secondary">{inv.entityName}</td>
                 <td className="px-5 py-3.5 text-secondary">{inv.entityType ?? '—'}</td>

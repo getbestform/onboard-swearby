@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { verifyInvite, saveDraft, loadDraft } from '@/app/actions/invite'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { verifyInvite, saveDraft, loadDraft, submitApplication } from '@/app/actions/invite'
+import { validateStep, type FieldErrors } from './schemas'
 
 interface OnboardingFormProps {
   token: string
@@ -121,7 +122,7 @@ type DraftData = {
   // prescribers
   prescriberName?: string; dea?: string; license?: string; licenseState?: string; specialty?: string
   // catalog
-  drugName?: string; doses?: string; unitPrice?: string; stateAvailability?: string
+  drugs?: { drugName: string; doses: string; unitPrice: string; stateAvailability: string }[]
   // billing
   billingMode?: string; cardholderName?: string; cardNumber?: string; expiry?: string; cvc?: string
   accountName?: string; routingNumber?: string; accountNumber?: string
@@ -131,23 +132,36 @@ type DraftData = {
 
 // ── Step form components (controlled) ────────────────────────────────────────
 
-function BusinessInfoForm({ data, onChange }: { data: DraftData; onChange: (d: Partial<DraftData>) => void }) {
+function formatPhone(val: string) {
+  const d = val.replace(/\D/g, '').slice(0, 10)
+  if (d.length < 4) return d
+  if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
+}
+
+function formatEIN(val: string) {
+  const d = val.replace(/\D/g, '').slice(0, 9)
+  return d.length > 2 ? `${d.slice(0, 2)}-${d.slice(2)}` : d
+}
+
+function BusinessInfoForm({ data, onChange, errors = {} }: { data: DraftData; onChange: (d: Partial<DraftData>) => void; errors?: FieldErrors }) {
   return (
     <div className="space-y-10">
       <div className="space-y-6">
         <h4 className={sec}>Legal Identity</h4>
         <div className="grid grid-cols-2 gap-6">
           <div className="col-span-2">
-            <label className={lbl}>Legal Business Name</label>
-            <input className={field} placeholder="e.g. SwearBy Clinical Group LLC" type="text" value={data.businessName ?? ''} onChange={e => onChange({ businessName: e.target.value })} />
+            <label className={lbl}>Legal Business Name <span className="text-red-500">*</span></label>
+            <input className={`${field} ${errors.businessName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="e.g. SwearBy Clinical Group LLC" type="text" value={data.businessName ?? ''} onChange={e => onChange({ businessName: e.target.value })} />
+            {errors.businessName && <p className="text-[11px] text-red-500 mt-1.5">{errors.businessName}</p>}
           </div>
           <div>
             <label className={lbl}>Tax ID / EIN</label>
-            <input className={field} placeholder="XX-XXXXXXX" type="text" value={data.ein ?? ''} onChange={e => onChange({ ein: e.target.value })} />
+            <input className={field} placeholder="XX-XXXXXXX" inputMode="numeric" type="text" value={data.ein ?? ''} onChange={e => onChange({ ein: formatEIN(e.target.value) })} />
           </div>
           <div>
             <label className={lbl}>Clinic NPI</label>
-            <input className={field} placeholder="10-digit number" type="text" value={data.npi ?? ''} onChange={e => onChange({ npi: e.target.value })} />
+            <input className={field} placeholder="10-digit number" inputMode="numeric" maxLength={10} type="text" value={data.npi ?? ''} onChange={e => onChange({ npi: e.target.value.replace(/\D/g, '').slice(0, 10) })} />
           </div>
         </div>
       </div>
@@ -164,11 +178,11 @@ function BusinessInfoForm({ data, onChange }: { data: DraftData; onChange: (d: P
           </div>
           <div className="col-span-1">
             <label className={lbl}>State</label>
-            <input className={field} maxLength={2} placeholder="NY" type="text" value={data.state ?? ''} onChange={e => onChange({ state: e.target.value.toUpperCase().slice(0, 2) })} />
+            <input className={field} maxLength={2} placeholder="NY" type="text" value={data.state ?? ''} onChange={e => onChange({ state: e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2) })} />
           </div>
           <div className="col-span-2">
             <label className={lbl}>Postal Code</label>
-            <input className={field} type="text" value={data.zip ?? ''} onChange={e => onChange({ zip: e.target.value })} />
+            <input className={field} inputMode="numeric" maxLength={5} placeholder="10001" type="text" value={data.zip ?? ''} onChange={e => onChange({ zip: e.target.value.replace(/\D/g, '').slice(0, 5) })} />
           </div>
         </div>
       </div>
@@ -177,7 +191,7 @@ function BusinessInfoForm({ data, onChange }: { data: DraftData; onChange: (d: P
         <div className="grid grid-cols-2 gap-6">
           <div>
             <label className={lbl}>Primary Phone</label>
-            <input className={field} placeholder="+1 (555) 000-0000" type="tel" value={data.phone ?? ''} onChange={e => onChange({ phone: e.target.value })} />
+            <input className={field} placeholder="(555) 000-0000" inputMode="numeric" type="tel" value={data.phone ?? ''} onChange={e => onChange({ phone: formatPhone(e.target.value) })} />
           </div>
           <div>
             <label className={lbl}>Public Website</label>
@@ -189,18 +203,19 @@ function BusinessInfoForm({ data, onChange }: { data: DraftData; onChange: (d: P
   )
 }
 
-function PrescribersForm({ data, onChange }: { data: DraftData; onChange: (d: Partial<DraftData>) => void }) {
+function PrescribersForm({ data, onChange, errors = {} }: { data: DraftData; onChange: (d: Partial<DraftData>) => void; errors?: FieldErrors }) {
   return (
     <div className="space-y-6">
       <h4 className={sec}>Primary Prescriber</h4>
       <div className="grid grid-cols-2 gap-6">
         <div className="col-span-2">
-          <label className={lbl}>Full Name</label>
-          <input className={field} placeholder="Dr. Jane Smith" type="text" value={data.prescriberName ?? ''} onChange={e => onChange({ prescriberName: e.target.value })} />
+          <label className={lbl}>Full Name <span className="text-red-500">*</span></label>
+          <input className={`${field} ${errors.prescriberName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="Dr. Jane Smith" type="text" value={data.prescriberName ?? ''} onChange={e => onChange({ prescriberName: e.target.value })} />
+          {errors.prescriberName && <p className="text-[11px] text-red-500 mt-1.5">{errors.prescriberName}</p>}
         </div>
         <div>
           <label className={lbl}>DEA Number</label>
-          <input className={field} placeholder="AB1234567" type="text" value={data.dea ?? ''} onChange={e => onChange({ dea: e.target.value })} />
+          <input className={field} placeholder="AB1234567" maxLength={9} type="text" value={data.dea ?? ''} onChange={e => onChange({ dea: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 9) })} />
         </div>
         <div>
           <label className={lbl}>Medical License #</label>
@@ -208,7 +223,7 @@ function PrescribersForm({ data, onChange }: { data: DraftData; onChange: (d: Pa
         </div>
         <div>
           <label className={lbl}>Licensing State</label>
-          <input className={field} maxLength={2} placeholder="NY" type="text" value={data.licenseState ?? ''} onChange={e => onChange({ licenseState: e.target.value.toUpperCase().slice(0, 2) })} />
+          <input className={field} maxLength={2} placeholder="NY" type="text" value={data.licenseState ?? ''} onChange={e => onChange({ licenseState: e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2) })} />
         </div>
         <div>
           <label className={lbl}>Specialty</label>
@@ -219,33 +234,72 @@ function PrescribersForm({ data, onChange }: { data: DraftData; onChange: (d: Pa
   )
 }
 
-function DrugCatalogForm({ data, onChange }: { data: DraftData; onChange: (d: Partial<DraftData>) => void }) {
+const emptyDrug = () => ({ drugName: '', doses: '', unitPrice: '', stateAvailability: '' })
+
+function DrugCatalogForm({ data, onChange, errors = {} }: { data: DraftData; onChange: (d: Partial<DraftData>) => void; errors?: FieldErrors }) {
+  const drugs = data.drugs?.length ? data.drugs : [emptyDrug()]
+
+  function updateDrug(index: number, patch: Partial<typeof drugs[0]>) {
+    const next = drugs.map((d, i) => i === index ? { ...d, ...patch } : d)
+    onChange({ drugs: next })
+  }
+
+  function addDrug() {
+    onChange({ drugs: [...drugs, emptyDrug()] })
+  }
+
+  function removeDrug(index: number) {
+    const next = drugs.filter((_, i) => i !== index)
+    onChange({ drugs: next.length ? next : [emptyDrug()] })
+  }
+
   return (
     <div className="space-y-6">
-      <h4 className={sec}>Initial Drug Entry</h4>
-      <div className="grid grid-cols-2 gap-6">
-        <div className="col-span-2">
-          <label className={lbl}>Drug Name</label>
-          <input className={field} placeholder="e.g. Semaglutide" type="text" value={data.drugName ?? ''} onChange={e => onChange({ drugName: e.target.value })} />
+      {drugs.map((drug, i) => (
+        <div key={i} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className={sec}>Drug Entry {drugs.length > 1 ? i + 1 : ''}</h4>
+            {drugs.length > 1 && (
+              <button type="button" onClick={() => removeDrug(i)}
+                className="text-[10px] font-semibold uppercase tracking-widest text-red-500 hover:text-red-700 transition-colors">
+                Remove
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="col-span-2">
+              <label className={lbl}>Drug Name <span className="text-red-500">*</span></label>
+              <input className={`${field} ${errors[`drugs.${i}.drugName`] ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="e.g. Semaglutide" type="text" value={drug.drugName} onChange={e => updateDrug(i, { drugName: e.target.value })} />
+              {errors[`drugs.${i}.drugName`] && <p className="text-[11px] text-red-500 mt-1.5">{errors[`drugs.${i}.drugName`]}</p>}
+            </div>
+            <div>
+              <label className={lbl}>Available Doses <span className="text-red-500">*</span></label>
+              <input className={`${field} ${errors[`drugs.${i}.doses`] ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="e.g. 0.25mg, 0.5mg, 1mg" type="text" value={drug.doses} onChange={e => updateDrug(i, { doses: e.target.value })} />
+              {errors[`drugs.${i}.doses`] && <p className="text-[11px] text-red-500 mt-1.5">{errors[`drugs.${i}.doses`]}</p>}
+            </div>
+            <div>
+              <label className={lbl}>Unit Price <span className="text-red-500">*</span></label>
+              <input className={`${field} text-right ${errors[`drugs.${i}.unitPrice`] ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="$0.00" inputMode="decimal" type="text" value={drug.unitPrice} onChange={e => updateDrug(i, { unitPrice: e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1') })} />
+              {errors[`drugs.${i}.unitPrice`] && <p className="text-[11px] text-red-500 mt-1.5">{errors[`drugs.${i}.unitPrice`]}</p>}
+            </div>
+            <div className="col-span-2">
+              <label className={lbl}>State Availability <span className="text-red-500">*</span></label>
+              <input className={`${field} ${errors[`drugs.${i}.stateAvailability`] ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="e.g. NY, CA, TX (comma separated)" type="text" value={drug.stateAvailability} onChange={e => updateDrug(i, { stateAvailability: e.target.value })} />
+              {errors[`drugs.${i}.stateAvailability`] && <p className="text-[11px] text-red-500 mt-1.5">{errors[`drugs.${i}.stateAvailability`]}</p>}
+            </div>
+          </div>
+          {i < drugs.length - 1 && <div className="border-t border-[#e4e2dd]" />}
         </div>
-        <div>
-          <label className={lbl}>Available Doses</label>
-          <input className={field} placeholder="e.g. 0.25mg, 0.5mg, 1mg" type="text" value={data.doses ?? ''} onChange={e => onChange({ doses: e.target.value })} />
-        </div>
-        <div>
-          <label className={lbl}>Unit Price</label>
-          <input className={field} placeholder="$0.00" type="text" value={data.unitPrice ?? ''} onChange={e => onChange({ unitPrice: e.target.value })} />
-        </div>
-        <div className="col-span-2">
-          <label className={lbl}>State Availability</label>
-          <input className={field} placeholder="e.g. NY, CA, TX (comma separated)" type="text" value={data.stateAvailability ?? ''} onChange={e => onChange({ stateAvailability: e.target.value })} />
-        </div>
-      </div>
+      ))}
+      <button type="button" onClick={addDrug}
+        className="w-full py-3 border border-dashed border-[#1A3C2A]/30 rounded text-[10px] font-semibold uppercase tracking-widest text-[#1A3C2A]/60 hover:border-[#1A3C2A]/60 hover:text-[#1A3C2A] transition-colors">
+        + Add Another Drug
+      </button>
     </div>
   )
 }
 
-function BillingForm({ data, onChange }: { data: DraftData; onChange: (d: Partial<DraftData>) => void }) {
+function BillingForm({ data, onChange, errors = {} }: { data: DraftData; onChange: (d: Partial<DraftData>) => void; errors?: FieldErrors }) {
   const mode = (data.billingMode ?? 'card') as 'card' | 'ach'
 
   function formatCard(val: string) { return val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim() }
@@ -265,35 +319,42 @@ function BillingForm({ data, onChange }: { data: DraftData; onChange: (d: Partia
       {mode === 'card' ? (
         <div className="grid grid-cols-2 gap-6">
           <div className="col-span-2">
-            <label className={lbl}>Cardholder Name</label>
-            <input className={field} placeholder="DR. ELIZA VANCE" type="text" value={data.cardholderName ?? ''} onChange={e => onChange({ cardholderName: e.target.value })} />
+            <label className={lbl}>Cardholder Name <span className="text-red-500">*</span></label>
+            <input className={`${field} ${errors.cardholderName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="DR. ELIZA VANCE" type="text" value={data.cardholderName ?? ''} onChange={e => onChange({ cardholderName: e.target.value })} />
+            {errors.cardholderName && <p className="text-[11px] text-red-500 mt-1.5">{errors.cardholderName}</p>}
           </div>
           <div className="col-span-2">
-            <label className={lbl}>Card Number</label>
-            <input className={field} inputMode="numeric" placeholder="0000 0000 0000 0000" type="text" value={data.cardNumber ?? ''} onChange={e => onChange({ cardNumber: formatCard(e.target.value) })} />
+            <label className={lbl}>Card Number <span className="text-red-500">*</span></label>
+            <input className={`${field} ${errors.cardNumber ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} inputMode="numeric" placeholder="0000 0000 0000 0000" type="text" value={data.cardNumber ?? ''} onChange={e => onChange({ cardNumber: formatCard(e.target.value) })} />
+            {errors.cardNumber && <p className="text-[11px] text-red-500 mt-1.5">{errors.cardNumber}</p>}
           </div>
           <div>
-            <label className={lbl}>Expiry</label>
-            <input className={field} inputMode="numeric" placeholder="MM / YY" type="text" value={data.expiry ?? ''} onChange={e => onChange({ expiry: formatExpiry(e.target.value) })} />
+            <label className={lbl}>Expiry <span className="text-red-500">*</span></label>
+            <input className={`${field} ${errors.expiry ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} inputMode="numeric" placeholder="MM / YY" type="text" value={data.expiry ?? ''} onChange={e => onChange({ expiry: formatExpiry(e.target.value) })} />
+            {errors.expiry && <p className="text-[11px] text-red-500 mt-1.5">{errors.expiry}</p>}
           </div>
           <div>
-            <label className={lbl}>CVC</label>
-            <input className={field} inputMode="numeric" maxLength={4} placeholder="CVC" type="text" value={data.cvc ?? ''} onChange={e => onChange({ cvc: e.target.value.replace(/\D/g, '').slice(0, 4) })} />
+            <label className={lbl}>CVC <span className="text-red-500">*</span></label>
+            <input className={`${field} ${errors.cvc ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} inputMode="numeric" maxLength={4} placeholder="CVC" type="text" value={data.cvc ?? ''} onChange={e => onChange({ cvc: e.target.value.replace(/\D/g, '').slice(0, 4) })} />
+            {errors.cvc && <p className="text-[11px] text-red-500 mt-1.5">{errors.cvc}</p>}
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-6">
           <div className="col-span-2">
-            <label className={lbl}>Account Holder Name</label>
-            <input className={field} placeholder="DR. ELIZA VANCE" type="text" value={data.accountName ?? ''} onChange={e => onChange({ accountName: e.target.value })} />
+            <label className={lbl}>Account Holder Name <span className="text-red-500">*</span></label>
+            <input className={`${field} ${errors.accountName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="DR. ELIZA VANCE" type="text" value={data.accountName ?? ''} onChange={e => onChange({ accountName: e.target.value })} />
+            {errors.accountName && <p className="text-[11px] text-red-500 mt-1.5">{errors.accountName}</p>}
           </div>
           <div>
-            <label className={lbl}>Routing Number</label>
-            <input className={field} inputMode="numeric" maxLength={9} placeholder="021000021" type="text" value={data.routingNumber ?? ''} onChange={e => onChange({ routingNumber: e.target.value.replace(/\D/g, '').slice(0, 9) })} />
+            <label className={lbl}>Routing Number <span className="text-red-500">*</span></label>
+            <input className={`${field} ${errors.routingNumber ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} inputMode="numeric" maxLength={9} placeholder="021000021" type="text" value={data.routingNumber ?? ''} onChange={e => onChange({ routingNumber: e.target.value.replace(/\D/g, '').slice(0, 9) })} />
+            {errors.routingNumber && <p className="text-[11px] text-red-500 mt-1.5">{errors.routingNumber}</p>}
           </div>
           <div>
-            <label className={lbl}>Account Number</label>
-            <input className={field} inputMode="numeric" placeholder="000123456789" type="text" value={data.accountNumber ?? ''} onChange={e => onChange({ accountNumber: e.target.value.replace(/\D/g, '') })} />
+            <label className={lbl}>Account Number <span className="text-red-500">*</span></label>
+            <input className={`${field} ${errors.accountNumber ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} inputMode="numeric" placeholder="000123456789" type="text" value={data.accountNumber ?? ''} onChange={e => onChange({ accountNumber: e.target.value.replace(/\D/g, '') })} />
+            {errors.accountNumber && <p className="text-[11px] text-red-500 mt-1.5">{errors.accountNumber}</p>}
           </div>
         </div>
       )}
@@ -301,15 +362,16 @@ function BillingForm({ data, onChange }: { data: DraftData; onChange: (d: Partia
   )
 }
 
-function IntakeForm({ data, onChange }: { data: DraftData; onChange: (d: Partial<DraftData>) => void }) {
+function IntakeForm({ data, onChange, errors = {} }: { data: DraftData; onChange: (d: Partial<DraftData>) => void; errors?: FieldErrors }) {
   return (
     <div className="space-y-10">
       <div className="space-y-6">
         <h4 className={sec}>Clinic Branding</h4>
         <div className="grid grid-cols-2 gap-6">
           <div className="col-span-2">
-            <label className={lbl}>Clinic Display Name</label>
-            <input className={field} placeholder="e.g. Thorne Clinical Partners" type="text" value={data.displayName ?? ''} onChange={e => onChange({ displayName: e.target.value })} />
+            <label className={lbl}>Clinic Display Name <span className="text-red-500">*</span></label>
+            <input className={`${field} ${errors.displayName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="e.g. Thorne Clinical Partners" type="text" value={data.displayName ?? ''} onChange={e => onChange({ displayName: e.target.value })} />
+            {errors.displayName && <p className="text-[11px] text-red-500 mt-1.5">{errors.displayName}</p>}
           </div>
           <div>
             <label className={lbl}>Primary Brand Color</label>
@@ -345,14 +407,38 @@ function IntakeForm({ data, onChange }: { data: DraftData; onChange: (d: Partial
   )
 }
 
-function ReviewForm({ data, onComplete }: { data: DraftData; onComplete: () => void }) {
+function ReviewForm({ token, data, onComplete }: { token: string; data: DraftData; onComplete: () => void }) {
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const sections = [
     { label: 'Business Info',  summary: [data.businessName, data.ein, data.npi, data.city, data.phone].filter(Boolean).join(' · ') || 'No data entered' },
     { label: 'Prescribers',    summary: [data.prescriberName, data.dea, data.specialty].filter(Boolean).join(' · ') || 'No data entered' },
-    { label: 'Drug Catalog',   summary: [data.drugName, data.doses, data.stateAvailability].filter(Boolean).join(' · ') || 'No data entered' },
+    { label: 'Drug Catalog',   summary: data.drugs?.filter(d => d.drugName).map(d => d.drugName).join(', ') || 'No data entered' },
     { label: 'Billing',        summary: data.billingMode === 'ach' ? 'ACH Transfer' : data.cardholderName ? `Card — ${data.cardholderName}` : 'No data entered' },
     { label: 'Intake',         summary: [data.displayName, data.brandColor].filter(Boolean).join(' · ') || 'No data entered' },
   ]
+
+  async function handleSubmit() {
+    setError(null)
+    setPending(true)
+    try {
+      // Ensure latest draft (including drug catalog) is persisted before submitting
+      const saveResult = await saveDraft(token, data as Record<string, unknown>)
+      if ('error' in saveResult) {
+        setError('Failed to save your data. Please try again.')
+        return
+      }
+      const result = await submitApplication(token)
+      if ('error' in result) {
+        setError(result.error)
+      } else {
+        onComplete()
+      }
+    } finally {
+      setPending(false)
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -369,13 +455,16 @@ function ReviewForm({ data, onComplete }: { data: DraftData; onComplete: () => v
           </div>
         ))}
       </div>
+      {error && (
+        <p className="text-xs text-red-600 font-medium">{error}</p>
+      )}
       <p className="text-[11px] text-[#424843]/60 uppercase tracking-widest leading-relaxed">
         By submitting you agree to the SwearBy Clinical Master Services Agreement. Our team will review your application and be in touch within 24 hours.
       </p>
-      <button type="button" onClick={onComplete}
-        className="w-full py-4 bg-[#1A3C2A] text-white text-sm font-bold rounded shadow-xl hover:opacity-90 transition-all flex items-center justify-center gap-2">
-        <span>Submit Application</span>
-        <Icon name="arrow" className="w-4 h-4" />
+      <button type="button" onClick={handleSubmit} disabled={pending}
+        className="w-full py-4 bg-[#1A3C2A] text-white text-sm font-bold rounded shadow-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+        <span>{pending ? 'Submitting…' : 'Submit Application'}</span>
+        {!pending && <Icon name="arrow" className="w-4 h-4" />}
       </button>
     </div>
   )
@@ -390,6 +479,7 @@ function OnboardingWizard({ token, onComplete }: { token: string; onComplete: ()
   const [draft, setDraft] = useState<DraftData>({})
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [loadingDraft, setLoadingDraft] = useState(true)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const meta = STEP_META[step]
 
@@ -403,14 +493,36 @@ function OnboardingWizard({ token, onComplete }: { token: string; onComplete: ()
     })
   }, [token])
 
+  const draftRef = useRef(draft)
+  draftRef.current = draft
+
   const handleChange = useCallback((patch: Partial<DraftData>) => {
     setDraft((prev) => ({ ...prev, ...patch }))
     setSaveStatus('idle')
+    setFieldErrors({})
   }, [])
+
+  // Auto-save 1.5s after the user stops typing
+  useEffect(() => {
+    if (loadingDraft) return
+    setSaveStatus('idle')
+    const timer = setTimeout(async () => {
+      setSaveStatus('saving')
+      const result = await saveDraft(token, draftRef.current as Record<string, unknown>)
+      if ('error' in result) {
+        setSaveStatus('error')
+      } else {
+        setSaveStatus('saved')
+        setTimeout(() => setSaveStatus('idle'), 3000)
+      }
+    }, 1500)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, token, loadingDraft])
 
   async function handleSaveDraft() {
     setSaveStatus('saving')
-    const result = await saveDraft(token, draft as Record<string, unknown>)
+    const result = await saveDraft(token, draftRef.current as Record<string, unknown>)
     if ('error' in result) {
       setSaveStatus('error')
     } else {
@@ -420,19 +532,17 @@ function OnboardingWizard({ token, onComplete }: { token: string; onComplete: ()
   }
 
   function renderStepForm() {
-    const props = { data: draft, onChange: handleChange }
+    const props = { data: draft, onChange: handleChange, errors: fieldErrors }
     switch (step) {
       case 0: return <BusinessInfoForm {...props} />
       case 1: return <PrescribersForm {...props} />
       case 2: return <DrugCatalogForm {...props} />
       case 3: return <BillingForm {...props} />
       case 4: return <IntakeForm {...props} />
-      case 5: return <ReviewForm data={draft} onComplete={onComplete} />
+      case 5: return <ReviewForm token={token} data={draft} onComplete={onComplete} />
       default: return null
     }
   }
-
-  const saveBtnLabel = saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved!' : saveStatus === 'error' ? 'Error — retry' : 'Save Draft'
 
   return (
     <div className="min-h-screen bg-[#fbf9f4] text-[#1b1c19]">
@@ -441,20 +551,23 @@ function OnboardingWizard({ token, onComplete }: { token: string; onComplete: ()
       <header className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-8 py-4 border-b border-[#e4e2dd] bg-[#fbf9f4]">
         <span className="font-serif text-xl italic text-[#1A3C2A]">Clinical Editorial</span>
         <div className="flex items-center gap-6">
+          {saveStatus === 'saving' && (
+            <div className="flex items-center gap-2 text-[#424843]/40">
+              <Icon name="spinner" className="w-3.5 h-3.5" />
+              <span className="text-[10px] uppercase tracking-widest">Saving…</span>
+            </div>
+          )}
           {saveStatus === 'saved' && (
             <div className="flex items-center gap-2 text-[#424843]/60">
               <Icon name="cloud" className="w-4 h-4" />
-              <span className="text-[10px] uppercase tracking-widest">Draft Saved</span>
+              <span className="text-[10px] uppercase tracking-widest">Saved</span>
             </div>
           )}
-          <div className="flex items-center gap-3">
-            <button className="text-[#424843]/60 hover:text-[#1A3C2A] transition-colors">
-              <Icon name="help" className="w-5 h-5" />
-            </button>
-            <div className="w-8 h-8 rounded-full bg-[#e4e2dd] flex items-center justify-center">
-              <Icon name="user" className="w-4 h-4 text-[#424843]" />
+          {saveStatus === 'error' && (
+            <div className="flex items-center gap-2 text-red-400">
+              <span className="text-[10px] uppercase tracking-widest">Save failed</span>
             </div>
-          </div>
+          )}
         </div>
       </header>
 
@@ -480,16 +593,6 @@ function OnboardingWizard({ token, onComplete }: { token: string; onComplete: ()
           })}
         </div>
 
-        <div className="pt-6 border-t border-[#e4e2dd]">
-          <button
-            onClick={handleSaveDraft}
-            disabled={saveStatus === 'saving'}
-            className={`w-full py-3 px-4 text-sm font-semibold rounded transition-all flex items-center justify-center gap-2 ${saveStatus === 'error' ? 'bg-red-100 text-red-700' : saveStatus === 'saved' ? 'bg-[#c5ecd2] text-[#1A3C2A]' : 'bg-[#d4e4d7] text-[#1A3C2A] hover:opacity-90'} disabled:opacity-60`}
-          >
-            {saveStatus === 'saving' && <Icon name="spinner" className="w-3.5 h-3.5" />}
-            {saveBtnLabel}
-          </button>
-        </div>
       </nav>
 
       {/* Main */}
@@ -540,7 +643,16 @@ function OnboardingWizard({ token, onComplete }: { token: string; onComplete: ()
                           Back
                         </button>
                       )}
-                      <button type="button" onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
+                      <button type="button" onClick={async () => {
+                          const errors = validateStep(step, draft as Record<string, unknown>)
+                          if (errors) {
+                            setFieldErrors(errors)
+                            return
+                          }
+                          setFieldErrors({})
+                          await handleSaveDraft()
+                          setStep((s) => Math.min(STEPS.length - 1, s + 1))
+                        }}
                         className="px-10 py-4 bg-[#1A3C2A] text-white text-sm font-bold rounded shadow-xl shadow-[#1A3C2A]/10 hover:opacity-90 transition-all flex items-center gap-2">
                         <span>Save &amp; Continue</span>
                         <Icon name="arrow" className="w-4 h-4" />
