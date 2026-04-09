@@ -63,3 +63,73 @@ export async function sendInvite(prevState: InviteState, formData: FormData): Pr
 
   return { success: true, token: data.token, code: data.code }
 }
+
+export type Invite = {
+  id: string
+  ownerName: string
+  email: string
+  entityName: string
+  entityType: string | null
+  status: string
+  expiresAt: string
+  createdAt: string
+}
+
+export type ListInvitesResult =
+  | { data: Invite[]; total: number; page: number; limit: number }
+  | { error: string }
+
+export async function listInvites(params: {
+  page?: number
+  limit?: number
+  status?: string
+  entityType?: string
+  search?: string
+}): Promise<ListInvitesResult> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration. Contact support.' }
+  }
+
+  const qs = new URLSearchParams()
+  if (params.page)       qs.set('page',       String(params.page))
+  if (params.limit)      qs.set('limit',      String(params.limit))
+  if (params.status)     qs.set('status',     params.status)
+  if (params.entityType) qs.set('entityType', params.entityType)
+  if (params.search)     qs.set('search',     params.search)
+
+  const url = `${process.env.VERTI_API_URL}/api/partner-invites?${qs.toString()}`
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return { error: 'Failed to load invites.' }
+    return await res.json()
+  } catch (err) {
+    console.error('[listInvites] fetch failed:', (err as Error)?.message)
+    return { error: 'Network error. Please try again.' }
+  }
+}
+
+export async function verifyInvite(
+  token: string,
+  code: string,
+  email: string,
+): Promise<{ success: true } | { error: string }> {
+  const url = `${process.env.VERTI_API_URL}/api/partner-invites/${token}/verify`
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, email }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      return { error: data?.error ?? 'Invalid code or email. Please try again.' }
+    }
+    return { success: true }
+  } catch (err) {
+    console.error('[verifyInvite] fetch failed:', url, (err as Error)?.message)
+    return { error: 'Network error. Please try again.' }
+  }
+}

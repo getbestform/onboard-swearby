@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { verifyInvite } from '@/app/actions/invite'
 
 interface OnboardingFormProps {
   token: string
@@ -32,22 +33,12 @@ export default function OnboardingForm({ token, ownerName, email }: OnboardingFo
 
     setPending(true)
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_VERTI_API_URL}/api/partner-invites/${token}/verify`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, email: emailVal }),
-        }
-      )
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data?.error ?? 'Invalid code or email. Please try again.')
+      const result = await verifyInvite(token, code, emailVal)
+      if ('error' in result) {
+        setError(result.error)
       } else {
         router.push(`/onboarding/${token}/welcome`)
       }
-    } catch {
-      setError('Network error. Please try again.')
     } finally {
       setPending(false)
     }
