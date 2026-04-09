@@ -16,8 +16,8 @@ async function fetchInviteAndDraft(token: string): Promise<{
     fetch(`${apiUrl}/api/partner-invites/${token}/draft`, { headers: headers(apiKey), cache: 'no-store' }),
   ])
 
-  const invite = inviteRes.ok ? await inviteRes.json() : {}
-  const draft  = draftRes.ok  ? await draftRes.json()  : {}
+  const invite = inviteRes.ok ? await inviteRes.json().catch(() => ({})) : {}
+  const draft  = draftRes.ok  ? await draftRes.json().catch(() => ({}))  : {}
 
   return {
     ownerName: invite.ownerName,
