@@ -111,6 +111,49 @@ export async function listInvites(params: {
   }
 }
 
+export async function saveDraft(
+  token: string,
+  data: Record<string, unknown>,
+): Promise<{ success: true; updatedAt: string } | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  try {
+    const res = await fetch(`${process.env.VERTI_API_URL}/api/partner-invites/${token}/draft`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}`,
+      },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) return { error: 'Failed to save draft.' }
+    return await res.json()
+  } catch (err) {
+    console.error('[saveDraft] fetch failed:', (err as Error)?.message)
+    return { error: 'Network error.' }
+  }
+}
+
+export async function loadDraft(
+  token: string,
+): Promise<{ data: Record<string, unknown> | null } | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  try {
+    const res = await fetch(`${process.env.VERTI_API_URL}/api/partner-invites/${token}/draft`, {
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return { error: 'Failed to load draft.' }
+    return await res.json()
+  } catch (err) {
+    console.error('[loadDraft] fetch failed:', (err as Error)?.message)
+    return { error: 'Network error.' }
+  }
+}
+
 export async function verifyInvite(
   token: string,
   code: string,
