@@ -177,17 +177,15 @@ export default function InvitesPage() {
   const [invites, setInvites] = useState<Invite[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterEntityType, setFilterEntityType] = useState('')
 
-  const [, startTransition] = useTransition()
+  const [isPending, startTransition] = useTransition()
 
   const load = useCallback((opts: { page: number; search: string; status: string; entityType: string }) => {
-    setLoading(true)
     setError(null)
     startTransition(async () => {
       const result = await listInvites({
@@ -203,7 +201,6 @@ export default function InvitesPage() {
         setInvites(result.data)
         setTotal(result.total)
       }
-      setLoading(false)
     })
   }, [])
 
@@ -302,7 +299,7 @@ export default function InvitesPage() {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
+            {isPending ? (
               <tr>
                 <td colSpan={6} className="px-5 py-12 text-center text-sm text-secondary">Loading…</td>
               </tr>
@@ -340,7 +337,7 @@ export default function InvitesPage() {
         </table>
 
         {/* Pagination */}
-        {!loading && !error && total > 0 && (
+        {!isPending && !error && total > 0 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-secondary/10">
             <p className="text-xs text-secondary">
               {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}

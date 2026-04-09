@@ -9,6 +9,7 @@ interface OnboardingFormProps {
   ownerName?: string
   email?: string
   initiallyVerified?: boolean
+  initialDraft?: Record<string, unknown>
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -373,16 +374,12 @@ function IntakeForm({ data, onChange, errors = {} }: { data: DraftData; onChange
             <input className={`${field} ${errors.displayName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="e.g. Thorne Clinical Partners" type="text" value={data.displayName ?? ''} onChange={e => onChange({ displayName: e.target.value })} />
             {errors.displayName && <p className="text-[11px] text-red-500 mt-1.5">{errors.displayName}</p>}
           </div>
-          <div>
+          <div className="col-span-2">
             <label className={lbl}>Primary Brand Color</label>
             <div className="flex items-center gap-3">
               <input type="color" value={data.brandColor ?? '#1A3C2A'} onChange={e => onChange({ brandColor: e.target.value })} className="h-10 w-16 rounded cursor-pointer border-none bg-transparent p-0" />
               <input className={`${field} flex-1`} placeholder="#1A3C2A" type="text" value={data.brandColor ?? ''} onChange={e => onChange({ brandColor: e.target.value })} />
             </div>
-          </div>
-          <div>
-            <label className={lbl}>Logo Upload</label>
-            <input className={`${field} py-2.5`} type="file" accept="image/*" />
           </div>
         </div>
       </div>
@@ -474,23 +471,25 @@ function ReviewForm({ token, data, onComplete }: { token: string; data: DraftDat
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
-function OnboardingWizard({ token, onComplete }: { token: string; onComplete: () => void }) {
+function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; initialDraft?: Record<string, unknown>; onComplete: () => void }) {
   const [step, setStep] = useState(0)
-  const [draft, setDraft] = useState<DraftData>({})
+  const [draft, setDraft] = useState<DraftData>((initialDraft ?? {}) as DraftData)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
-  const [loadingDraft, setLoadingDraft] = useState(true)
+  const [loadingDraft, setLoadingDraft] = useState(!initialDraft)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const meta = STEP_META[step]
 
-  // Restore draft on mount
+  // Restore draft on mount only when no SSR draft was provided
   useEffect(() => {
+    if (initialDraft) return
     loadDraft(token).then((result) => {
       if ('data' in result && result.data) {
         setDraft(result.data as DraftData)
       }
       setLoadingDraft(false)
     })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   const draftRef = useRef(draft)
@@ -690,7 +689,7 @@ function VerifyStep({ token, ownerName, email, onVerified }: { token: string; ow
   const lastName = rest[rest.length - 1] ?? ''
   const displayFirst = prefix ? `${prefix} ${rest.slice(0, -1).join(' ')}`.trim() : rest.slice(0, -1).join(' ')
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     if (code.length < 5) { setError('Please enter all 5 digits.'); return }
@@ -792,10 +791,10 @@ function CompleteStep() {
 
 type FlowStep = 'verify' | 'wizard' | 'complete'
 
-export default function OnboardingForm({ token, ownerName, email, initiallyVerified }: OnboardingFormProps) {
+export default function OnboardingForm({ token, ownerName, email, initiallyVerified, initialDraft }: OnboardingFormProps) {
   const [step, setStep] = useState<FlowStep>(initiallyVerified ? 'wizard' : 'verify')
 
   if (step === 'verify') return <VerifyStep token={token} ownerName={ownerName} email={email} onVerified={() => setStep('wizard')} />
-  if (step === 'wizard') return <OnboardingWizard token={token} onComplete={() => setStep('complete')} />
+  if (step === 'wizard') return <OnboardingWizard token={token} initialDraft={initialDraft} onComplete={() => setStep('complete')} />
   return <CompleteStep />
 }

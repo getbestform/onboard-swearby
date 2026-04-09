@@ -98,6 +98,10 @@ export type InviteDetail = {
 }
 
 export async function getInviteDetail(token: string): Promise<InviteDetail | { error: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Session expired. Please sign in again.' }
+
   if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
     return { error: 'Server misconfiguration.' }
   }
@@ -132,6 +136,10 @@ export async function listInvites(params: {
   entityType?: string
   search?: string
 }): Promise<ListInvitesResult> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Session expired. Please sign in again.' }
+
   if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
     return { error: 'Server misconfiguration. Contact support.' }
   }
@@ -228,6 +236,9 @@ export async function verifyInvite(
   code: string,
   email: string,
 ): Promise<{ success: true } | { error: string }> {
+  if (!process.env.VERTI_API_URL) {
+    return { error: 'Server misconfiguration.' }
+  }
   const url = `${process.env.VERTI_API_URL}/api/partner-invites/${token}/verify`
   try {
     const res = await fetch(url, {
