@@ -4,6 +4,8 @@ const requiredString = (msg: string) => z.string().min(1, msg)
 
 export const businessInfoSchema = z.object({
   businessName: requiredString('Legal Business Name is required.'),
+  website: z.string().url('Enter a valid URL (e.g. https://clinic.com)').or(z.literal('')).optional(),
+  phone: z.string().refine(v => !v || v.replace(/\D/g, '').length === 10, 'Enter a valid 10-digit phone number').optional(),
 })
 
 export const prescribersSchema = z.object({

@@ -199,11 +199,13 @@ function BusinessInfoForm({ data, onChange, errors = {} }: { data: DraftData; on
         <div className="grid grid-cols-2 gap-6">
           <div>
             <label className={lbl}>Primary Phone</label>
-            <input className={field} placeholder="(555) 000-0000" inputMode="numeric" type="tel" value={data.phone ?? ''} onChange={e => onChange({ phone: formatPhone(e.target.value) })} />
+            <input className={`${field} ${errors.phone ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="(555) 000-0000" inputMode="numeric" type="tel" value={data.phone ?? ''} onChange={e => onChange({ phone: formatPhone(e.target.value) })} />
+            {errors.phone && <p className="text-[11px] text-red-500 mt-1.5">{errors.phone}</p>}
           </div>
           <div>
             <label className={lbl}>Public Website</label>
-            <input className={field} placeholder="https://clinic.com" type="url" value={data.website ?? ''} onChange={e => onChange({ website: e.target.value })} />
+            <input className={`${field} ${errors.website ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="https://clinic.com" type="url" value={data.website ?? ''} onChange={e => onChange({ website: e.target.value })} />
+            {errors.website && <p className="text-[11px] text-red-500 mt-1.5">{errors.website}</p>}
           </div>
         </div>
       </div>
