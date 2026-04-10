@@ -343,12 +343,13 @@ function StripeCardForm({
       }
       if (paymentIntent?.status === 'succeeded') {
         const details = await retrievePaymentDetails(paymentIntent.id)
+        if ('error' in details) console.error('[retrievePaymentDetails]', details.error)
         const patch: Partial<DraftData> = {
           paymentIntentId: paymentIntent.id,
           paymentStatus: 'succeeded',
           cardholderName,
-          last4:  'last4' in details  ? details.last4  : undefined,
-          brand:  'brand' in details  ? details.brand  : undefined,
+          last4: 'last4' in details ? details.last4 : undefined,
+          brand: 'brand' in details ? details.brand : undefined,
         }
         // Persist before advancing — payment data is critical
         await saveDraft(token, patch as Record<string, unknown>)
@@ -555,7 +556,7 @@ function ReviewForm({ token, data, onComplete }: { token: string; data: DraftDat
     { label: 'Business Info',  summary: [data.businessName, data.ein, data.npi, data.city, data.phone].filter(Boolean).join(' · ') || 'No data entered' },
     { label: 'Prescribers',    summary: [data.prescriberName, data.dea, data.specialty].filter(Boolean).join(' · ') || 'No data entered' },
     { label: 'Drug Catalog',   summary: data.drugs?.filter(d => d.drugName).map(d => d.drugName).join(', ') || 'No data entered' },
-    { label: 'Billing', summary: data.paymentIntentId && data.paymentStatus === 'succeeded' ? `${data.brand ? data.brand.charAt(0).toUpperCase() + data.brand.slice(1) : 'Card'} ••••${data.last4} — Paid` : 'Payment not completed' },
+    { label: 'Billing', summary: data.paymentIntentId && data.paymentStatus === 'succeeded' ? `${data.brand ? data.brand.charAt(0).toUpperCase() + data.brand.slice(1) : 'Card'}${data.last4 ? ` ••••${data.last4}` : ''} — Paid` : 'Payment not completed' },
     { label: 'Intake',         summary: [data.displayName, data.brandColor].filter(Boolean).join(' · ') || 'No data entered' },
   ]
 
