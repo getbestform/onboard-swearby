@@ -409,10 +409,13 @@ function BillingForm({
 }) {
   const [clientSecret, setClientSecret] = useState<string | null>(data.paymentClientSecret ?? null)
   const [initError, setInitError] = useState<string | null>(null)
+  const intentRequested = useRef(false)
 
   useEffect(() => {
     if (data.paymentIntentId && data.paymentStatus === 'succeeded') return
-    if (clientSecret) return // reuse existing intent
+    if (clientSecret) return // reuse intent from draft
+    if (intentRequested.current) return // prevent double-fire in Strict Mode
+    intentRequested.current = true
     createPaymentIntent(token).then((result) => {
       if ('error' in result) { setInitError(result.error); return }
       setClientSecret(result.clientSecret)
