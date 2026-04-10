@@ -290,10 +290,20 @@ export async function retrievePaymentDetails(
       expand: ['payment_method'],
     })
     const pm = pi.payment_method
-    if (!pm || typeof pm === 'string' || !pm.card) {
+    if (!pm || typeof pm === 'string') {
       return { error: 'Could not retrieve card details.' }
     }
-    return { last4: pm.card.last4, brand: pm.card.brand }
+    // Card payment
+    if (pm.card) {
+      return { last4: pm.card.last4, brand: pm.card.brand }
+    }
+    // Link payment — card details nested under pm.link.card if present
+    if (pm.type === 'link') {
+      const linkCard = (pm as unknown as { link?: { card?: { last4: string; brand: string } } }).link?.card
+      if (linkCard) return { last4: linkCard.last4, brand: linkCard.brand }
+      return { last4: '', brand: 'link' }
+    }
+    return { error: 'Could not retrieve card details.' }
   } catch (err) {
     console.error('[retrievePaymentDetails]', (err as Error)?.message)
     return { error: 'Failed to retrieve payment details.' }
