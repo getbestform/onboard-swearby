@@ -93,7 +93,7 @@ export type InviteDetail = {
     paymentIntentId?: string; paymentStatus?: string; paymentClientSecret?: string
     cardholderName?: string; last4?: string; brand?: string
     // intake
-    displayName?: string; brandColor?: string; description?: string; yearsInPractice?: string; locations?: string
+    displayName?: string; brandColor?: string; description?: string; yearsInPractice?: string; locations?: string; logoUrl?: string
   } | null
 }
 
@@ -275,6 +275,28 @@ export async function createPaymentIntent(
   } catch (err) {
     console.error('[createPaymentIntent]', (err as Error)?.message)
     return { error: 'Failed to initialize payment. Please try again.' }
+  }
+}
+
+export async function uploadClinicLogo(
+  token: string,
+  formData: FormData,
+): Promise<{ url: string } | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  try {
+    const res = await fetch(`${process.env.VERTI_API_URL}/api/partner-invites/${token}/logo`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+      body: formData,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to upload logo.' }
+    return { url: data.url }
+  } catch (err) {
+    console.error('[uploadClinicLogo] fetch failed:', (err as Error)?.message)
+    return { error: 'Network error. Please try again.' }
   }
 }
 

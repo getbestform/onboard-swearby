@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { verifyInvite, saveDraft, loadDraft, submitApplication, createPaymentIntent, retrievePaymentDetails } from '@/app/actions/invite'
+import { verifyInvite, saveDraft, loadDraft, submitApplication, createPaymentIntent, retrievePaymentDetails, uploadClinicLogo } from '@/app/actions/invite'
 import { validateStep, type FieldErrors } from './schemas'
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
@@ -135,7 +135,7 @@ type DraftData = {
   paymentIntentId?: string; paymentStatus?: string; paymentClientSecret?: string
   cardholderName?: string; last4?: string; brand?: string
   // intake
-  displayName?: string; brandColor?: string; description?: string; yearsInPractice?: string; locations?: string
+  displayName?: string; brandColor?: string; description?: string; yearsInPractice?: string; locations?: string; logoUrl?: string
 }
 
 // ── Step form components (controlled) ────────────────────────────────────────
@@ -512,7 +512,36 @@ function BillingForm({
   )
 }
 
-function IntakeForm({ data, onChange, errors = {} }: { data: DraftData; onChange: (d: Partial<DraftData>) => void; errors?: FieldErrors }) {
+function IntakeForm({ token, data, onChange, errors = {} }: { token: string; data: DraftData; onChange: (d: Partial<DraftData>) => void; errors?: FieldErrors }) {
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleLogoFile(file: File) {
+    setUploadError(null)
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const result = await uploadClinicLogo(token, fd)
+      if ('error' in result) {
+        setUploadError(result.error)
+      } else {
+        onChange({ logoUrl: result.url })
+      }
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleLogoFile(file)
+  }
+
   return (
     <div className="space-y-10">
       <div className="space-y-6">
@@ -522,6 +551,45 @@ function IntakeForm({ data, onChange, errors = {} }: { data: DraftData; onChange
             <label className={lbl}>Clinic Display Name <span className="text-red-500">*</span></label>
             <input className={`${field} ${errors.displayName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="e.g. Thorne Clinical Partners" type="text" value={data.displayName ?? ''} onChange={e => onChange({ displayName: e.target.value })} />
             {errors.displayName && <p className="text-[11px] text-red-500 mt-1.5">{errors.displayName}</p>}
+          </div>
+          <div className="col-span-2">
+            <label className={lbl}>Clinic Logo</label>
+            <div
+              className={`relative flex flex-col items-center justify-center gap-3 rounded border-2 border-dashed p-8 transition-colors cursor-pointer ${dragOver ? 'border-[#1A3C2A] bg-[#1A3C2A]/5' : 'border-[#c8c5bc] bg-[#e4e2dd]/40 hover:border-[#1A3C2A]/40'}`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+            >
+              {data.logoUrl ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={data.logoUrl} alt="Clinic logo preview" className="max-h-24 max-w-full object-contain rounded" />
+                  <p className="text-[11px] text-[#424843]/60">Click or drop to replace</p>
+                </>
+              ) : uploading ? (
+                <div className="flex items-center gap-2 text-sm text-[#424843]">
+                  <Icon name="spinner" className="w-4 h-4" />
+                  Uploading…
+                </div>
+              ) : (
+                <>
+                  <svg className="w-8 h-8 text-[#424843]/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <p className="text-sm text-[#424843]">Drop your logo here or <span className="text-[#1A3C2A] font-medium">browse</span></p>
+                  <p className="text-[11px] text-[#424843]/50">PNG, JPEG, WebP or SVG · max 5 MB · min 512×512 px recommended</p>
+                </>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="sr-only"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoFile(f) }}
+              />
+            </div>
+            {uploadError && <p className="text-[11px] text-red-500 mt-1.5">{uploadError}</p>}
           </div>
           <div className="col-span-2">
             <label className={lbl}>Primary Brand Color</label>
@@ -562,7 +630,7 @@ function ReviewForm({ token, data, onComplete }: { token: string; data: DraftDat
     { label: 'Prescribers',    summary: [data.prescriberName, data.dea, data.specialty].filter(Boolean).join(' · ') || 'No data entered' },
     { label: 'Drug Catalog',   summary: data.drugs?.filter(d => d.drugName).map(d => d.drugName).join(', ') || 'No data entered' },
     { label: 'Billing', summary: data.paymentIntentId && data.paymentStatus === 'succeeded' ? `${data.brand ? data.brand.charAt(0).toUpperCase() + data.brand.slice(1) : 'Card'}${data.last4 ? ` ••••${data.last4}` : ''} — Paid` : 'Payment not completed' },
-    { label: 'Intake',         summary: [data.displayName, data.brandColor].filter(Boolean).join(' · ') || 'No data entered' },
+    { label: 'Intake',         summary: [data.displayName, data.brandColor, data.logoUrl ? 'Logo uploaded' : ''].filter(Boolean).join(' · ') || 'No data entered' },
   ]
 
   async function handleSubmit() {
@@ -696,7 +764,7 @@ function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; 
           onAdvance={advanceStep}
         />
       )
-      case 4: return <IntakeForm {...props} />
+      case 4: return <IntakeForm token={token} {...props} />
       case 5: return <ReviewForm token={token} data={draft} onComplete={onComplete} />
       default: return null
     }
