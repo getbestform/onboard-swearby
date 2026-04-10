@@ -833,8 +833,11 @@ function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; 
       case 5: return (
         <ScheduleForm
           onBooked={async (uid, startTime) => {
-            handleChange({ calBookingUid: uid, calBookingStartTime: startTime })
-            await handleSaveDraft()
+            const patch = { calBookingUid: uid, calBookingStartTime: startTime }
+            handleChange(patch)
+            // Save explicitly with the patch merged — draftRef.current is stale
+            // until the next render, so we can't rely on handleSaveDraft here.
+            await saveDraft(token, { ...draftRef.current, ...patch } as Record<string, unknown>)
             advanceStep()
           }}
         />
@@ -936,7 +939,7 @@ function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; 
                   {renderStepForm()}
 
                   {/* Billing step manages its own navigation buttons */}
-                  {step < 6 && step !== 3 && (
+                  {step < 6 && step !== 3 && step !== 5 && (
                     <div className="pt-10 flex justify-end items-center gap-4">
                       {step > 0 && (
                         <button type="button" onClick={() => setStep((s) => s - 1)}
