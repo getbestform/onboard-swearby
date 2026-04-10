@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import CalEmbed from '@calcom/embed-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { verifyInvite, saveDraft, loadDraft, submitApplication, createPaymentIntent, retrievePaymentDetails, uploadClinicLogo } from '@/app/actions/invite'
@@ -54,6 +55,11 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
         <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
       </svg>
     )
+    case 'calendar': return (
+      <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+      </svg>
+    )
     case 'cloud': return (
       <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="20 6 9 17 4 12" /><path d="M22 10.5V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12.5" />
@@ -102,6 +108,7 @@ const STEPS = [
   { id: 'catalog',     label: 'Drug Catalog',   icon: 'medication'},
   { id: 'billing',     label: 'Billing',        icon: 'payments'  },
   { id: 'intake',      label: 'Intake',         icon: 'intake'    },
+  { id: 'schedule',    label: 'Schedule Call',  icon: 'calendar'  },
   { id: 'review',      label: 'Review',         icon: 'review'    },
 ]
 
@@ -111,6 +118,7 @@ const STEP_META = [
   { title: 'Drug Catalog Setup', instruction: { heading: 'Your Formulary',             body: 'Enter the drugs, doses, and pricing you intend to dispense. State availability determines where prescriptions can be filled.',                   note: 'State-specific formulary approval may be required' } },
   { title: 'Deposit & Billing',  instruction: { heading: 'Secure Your Position',       body: 'A $2,500 deposit confirms your allocation for the upcoming drug distribution cycle and operational integration.',                                note: 'PCI-compliant processing via Stripe / NMI' } },
   { title: 'Intake & Branding',  instruction: { heading: 'Your Practice, Your Identity', body: 'Upload your clinic logo and brand colors. These appear on patient-facing materials and your SwearBy portal.',                                  note: 'Logo should be PNG or SVG, minimum 512×512px' } },
+  { title: 'Onboarding Call',    instruction: { heading: 'Book Your Kickoff',           body: 'Schedule a 30-minute onboarding call with our clinical team. We\'ll walk through your setup, answer questions, and confirm your integration.',   note: 'Calendar powered by Cal.com — video link sent via email' } },
   { title: 'Review & Submit',    instruction: { heading: 'Final Review',               body: 'Verify all information is accurate before submitting. Our clinical team will review your application within 24 hours.',                          note: 'You will receive a confirmation email upon submission' } },
 ]
 
@@ -621,6 +629,43 @@ function IntakeForm({ token, data, onChange, errors = {} }: { token: string; dat
   )
 }
 
+function ScheduleForm() {
+  const raw = process.env.NEXT_PUBLIC_CAL_ONBOARDING_LINK
+
+  if (!raw) {
+    return (
+      <div className="py-12 text-center text-[#424843]/50 text-sm">
+        Scheduling is not configured. Set <code className="font-mono text-xs bg-[#e4e2dd] px-1 py-0.5 rounded">NEXT_PUBLIC_CAL_ONBOARDING_LINK</code> to enable this step.
+      </div>
+    )
+  }
+
+  let calOrigin = 'https://app.cal.com'
+  let calLink = raw
+  try {
+    const u = new URL(raw)
+    calOrigin = u.origin
+    calLink = u.pathname.replace(/^\//, '')
+  } catch {
+    // raw is already a bare path — keep defaults
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[#424843]">
+        Pick a time that works for you. You&apos;ll receive a confirmation email with a video link.
+      </p>
+      <CalEmbed
+        namespace="onboarding"
+        calLink={calLink}
+        calOrigin={calOrigin}
+        config={{ layout: 'month_view' as const, theme: 'light', brandColor: '#1A3C2A' }}
+        style={{ width: '100%', minHeight: 500, overflow: 'auto' }}
+      />
+    </div>
+  )
+}
+
 function ReviewForm({ token, data, onComplete }: { token: string; data: DraftData; onComplete: () => void }) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -765,7 +810,8 @@ function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; 
         />
       )
       case 4: return <IntakeForm token={token} {...props} />
-      case 5: return <ReviewForm token={token} data={draft} onComplete={onComplete} />
+      case 5: return <ScheduleForm />
+      case 6: return <ReviewForm token={token} data={draft} onComplete={onComplete} />
       default: return null
     }
   }
@@ -862,7 +908,7 @@ function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; 
                   {renderStepForm()}
 
                   {/* Billing step manages its own navigation buttons */}
-                  {step < 5 && step !== 3 && (
+                  {step < 6 && step !== 3 && (
                     <div className="pt-10 flex justify-end items-center gap-4">
                       {step > 0 && (
                         <button type="button" onClick={() => setStep((s) => s - 1)}
