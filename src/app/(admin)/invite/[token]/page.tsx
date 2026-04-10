@@ -143,23 +143,19 @@ export default async function InviteDetailPage({
 
         {/* Billing */}
         <Section title="Billing">
-          {draft?.billingMode ? (
+          {draft?.paymentIntentId ? (
             <Grid>
-              <Field label="Payment Method" value={draft.billingMode === 'ach' ? 'ACH Transfer' : 'Credit Card'} />
-              {draft.billingMode === 'card' ? (
-                <>
-                  <Field label="Cardholder Name" value={draft.cardholderName} />
-                  <Field label="Card Number" value={draft.cardNumber ? `•••• •••• •••• ${draft.cardNumber.replace(/\s/g, '').slice(-4)}` : undefined} />
-                </>
-              ) : (
-                <>
-                  <Field label="Account Name" value={draft.accountName} />
-                  <Field label="Routing Number" value={draft.routingNumber} />
-                  <Field label="Account Number" value={draft.accountNumber ? `••••${draft.accountNumber.slice(-4)}` : undefined} />
-                </>
-              )}
+              <Field
+                label="Card"
+                value={draft.last4
+                  ? `${draft.brand ? draft.brand.charAt(0).toUpperCase() + draft.brand.slice(1) : 'Card'} ••••${draft.last4}`
+                  : undefined}
+              />
+              <Field label="Cardholder" value={draft.cardholderName} />
+              <Field label="Payment Status" value={draft.paymentStatus} />
+              <Field label="Payment Intent" value={draft.paymentIntentId} />
             </Grid>
-          ) : <p className="text-sm text-secondary italic">No billing data submitted.</p>}
+          ) : <p className="text-sm text-secondary italic">No payment made.</p>}
         </Section>
 
         {/* Intake */}

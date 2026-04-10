@@ -1,8 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { verifyInvite, saveDraft, loadDraft, submitApplication } from '@/app/actions/invite'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { verifyInvite, saveDraft, loadDraft, submitApplication, createPaymentIntent, retrievePaymentDetails } from '@/app/actions/invite'
 import { validateStep, type FieldErrors } from './schemas'
+
+if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+  console.error('Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY — Stripe payment will not load.')
+}
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '')
 
 interface OnboardingFormProps {
   token: string
@@ -124,9 +131,9 @@ type DraftData = {
   prescriberName?: string; dea?: string; license?: string; licenseState?: string; specialty?: string
   // catalog
   drugs?: { drugName: string; doses: string; unitPrice: string; stateAvailability: string }[]
-  // billing
-  billingMode?: string; cardholderName?: string; cardNumber?: string; expiry?: string; cvc?: string
-  accountName?: string; routingNumber?: string; accountNumber?: string
+  // billing — Stripe-safe fields only, never raw card data
+  paymentIntentId?: string; paymentStatus?: string; paymentClientSecret?: string
+  cardholderName?: string; last4?: string; brand?: string
   // intake
   displayName?: string; brandColor?: string; description?: string; yearsInPractice?: string; locations?: string
 }
@@ -300,65 +307,201 @@ function DrugCatalogForm({ data, onChange, errors = {} }: { data: DraftData; onC
   )
 }
 
-function BillingForm({ data, onChange, errors = {} }: { data: DraftData; onChange: (d: Partial<DraftData>) => void; errors?: FieldErrors }) {
-  const mode = (data.billingMode ?? 'card') as 'card' | 'ach'
+// ── Stripe payment form ───────────────────────────────────────────────────────
 
-  function formatCard(val: string) { return val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim() }
-  function formatExpiry(val: string) { const d = val.replace(/\D/g, '').slice(0, 4); return d.length >= 3 ? `${d.slice(0, 2)} / ${d.slice(2)}` : d }
+function StripeCardForm({
+  token,
+  onChange,
+  onBack,
+  onAdvance,
+}: {
+  token: string
+  onChange: (d: Partial<DraftData>) => void
+  onBack: () => void
+  onAdvance: () => void
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [cardholderName, setCardholderName] = useState('')
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handlePay() {
+    if (!stripe || !elements) return
+    if (!cardholderName.trim()) { setError('Please enter the cardholder name.'); return }
+    setError(null)
+    setPending(true)
+    try {
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {},
+        redirect: 'if_required',
+      })
+      if (stripeError) {
+        setError(stripeError.message ?? 'Payment failed. Please try again.')
+        return
+      }
+      if (paymentIntent?.status === 'succeeded') {
+        const details = await retrievePaymentDetails(paymentIntent.id)
+        const patch: Partial<DraftData> = {
+          paymentIntentId: paymentIntent.id,
+          paymentStatus: 'succeeded',
+          cardholderName,
+          last4:  'last4' in details  ? details.last4  : undefined,
+          brand:  'brand' in details  ? details.brand  : undefined,
+        }
+        // Persist before advancing — payment data is critical
+        await saveDraft(token, patch as Record<string, unknown>)
+        onChange(patch)
+        onAdvance()
+      }
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <label className={lbl}>Cardholder Name <span className="text-red-500">*</span></label>
+        <input
+          className={field}
+          placeholder="DR. ELIZA VANCE"
+          type="text"
+          value={cardholderName}
+          onChange={e => setCardholderName(e.target.value)}
+        />
+      </div>
+      <div>
+        <label className={lbl}>Card Details <span className="text-red-500">*</span></label>
+        <PaymentElement options={{ layout: 'tabs' }} />
+      </div>
+      {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
+      <div className="pt-4 flex justify-end items-center gap-4">
+        <button type="button" onClick={onBack}
+          className="px-6 py-3 text-sm font-semibold text-[#424843] hover:text-[#1A3C2A] transition-colors">
+          Back
+        </button>
+        <button type="button" onClick={handlePay} disabled={!stripe || !elements || pending}
+          className="px-10 py-4 bg-[#1A3C2A] text-white text-sm font-bold rounded shadow-xl shadow-[#1A3C2A]/10 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50">
+          {pending && <Icon name="spinner" className="w-4 h-4" />}
+          <span>{pending ? 'Processing…' : 'Pay $2,500 & Continue'}</span>
+          {!pending && <Icon name="arrow" className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function BillingForm({
+  token,
+  data,
+  onChange,
+  onBack,
+  onAdvance,
+}: {
+  token: string
+  data: DraftData
+  onChange: (d: Partial<DraftData>) => void
+  onBack: () => void
+  onAdvance: () => void
+}) {
+  const [clientSecret, setClientSecret] = useState<string | null>(data.paymentClientSecret ?? null)
+  const [initError, setInitError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (data.paymentIntentId && data.paymentStatus === 'succeeded') return
+    if (clientSecret) return // reuse existing intent
+    createPaymentIntent(token).then((result) => {
+      if ('error' in result) { setInitError(result.error); return }
+      setClientSecret(result.clientSecret)
+      saveDraft(token, { paymentClientSecret: result.clientSecret })
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
+
+  // Already paid — show confirmation and let user proceed
+  if (data.paymentIntentId && data.paymentStatus === 'succeeded') {
+    const brandLabel = data.brand
+      ? data.brand.charAt(0).toUpperCase() + data.brand.slice(1)
+      : 'Card'
+    return (
+      <div className="space-y-6">
+        <h4 className={sec}>Initial Deposit — $2,500.00</h4>
+        <div className="flex items-center gap-4 p-5 bg-green-50 border border-green-200 rounded">
+          <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center shrink-0">
+            <Icon name="check" className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-green-800">Payment Successful</p>
+            <p className="text-xs text-green-700 mt-0.5">
+              {brandLabel} ••••{data.last4} — {data.cardholderName}
+            </p>
+          </div>
+        </div>
+        <div className="pt-4 flex justify-end items-center gap-4">
+          <button type="button" onClick={onBack}
+            className="px-6 py-3 text-sm font-semibold text-[#424843] hover:text-[#1A3C2A] transition-colors">
+            Back
+          </button>
+          <button type="button" onClick={onAdvance}
+            className="px-10 py-4 bg-[#1A3C2A] text-white text-sm font-bold rounded shadow-xl shadow-[#1A3C2A]/10 hover:opacity-90 transition-all flex items-center gap-2">
+            <span>Continue</span>
+            <Icon name="arrow" className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (initError) {
+    return (
+      <div className="space-y-6">
+        <h4 className={sec}>Initial Deposit — $2,500.00</h4>
+        <p className="text-sm text-red-600">{initError}</p>
+      </div>
+    )
+  }
+
+  if (!clientSecret) {
+    return (
+      <div className="space-y-6">
+        <h4 className={sec}>Initial Deposit — $2,500.00</h4>
+        <div className="flex items-center gap-2 text-[#424843]/60">
+          <Icon name="spinner" className="w-4 h-4" />
+          <span className="text-sm">Preparing payment…</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
       <h4 className={sec}>Initial Deposit — $2,500.00</h4>
-      <div className="flex gap-1 bg-[#e4e2dd] p-1 rounded w-fit">
-        {(['card', 'ach'] as const).map((m) => (
-          <button key={m} type="button" onClick={() => onChange({ billingMode: m })}
-            className={`px-5 py-2 rounded text-xs uppercase tracking-widest font-medium transition-all ${mode === m ? 'bg-white text-[#1A3C2A] shadow-sm font-semibold' : 'text-[#424843] hover:bg-white/50'}`}>
-            {m === 'card' ? 'Credit Card' : 'ACH Transfer'}
-          </button>
-        ))}
-      </div>
-      {mode === 'card' ? (
-        <div className="grid grid-cols-2 gap-6">
-          <div className="col-span-2">
-            <label className={lbl}>Cardholder Name <span className="text-red-500">*</span></label>
-            <input className={`${field} ${errors.cardholderName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="DR. ELIZA VANCE" type="text" value={data.cardholderName ?? ''} onChange={e => onChange({ cardholderName: e.target.value })} />
-            {errors.cardholderName && <p className="text-[11px] text-red-500 mt-1.5">{errors.cardholderName}</p>}
-          </div>
-          <div className="col-span-2">
-            <label className={lbl}>Card Number <span className="text-red-500">*</span></label>
-            <input className={`${field} ${errors.cardNumber ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} inputMode="numeric" placeholder="0000 0000 0000 0000" type="text" value={data.cardNumber ?? ''} onChange={e => onChange({ cardNumber: formatCard(e.target.value) })} />
-            {errors.cardNumber && <p className="text-[11px] text-red-500 mt-1.5">{errors.cardNumber}</p>}
-          </div>
-          <div>
-            <label className={lbl}>Expiry <span className="text-red-500">*</span></label>
-            <input className={`${field} ${errors.expiry ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} inputMode="numeric" placeholder="MM / YY" type="text" value={data.expiry ?? ''} onChange={e => onChange({ expiry: formatExpiry(e.target.value) })} />
-            {errors.expiry && <p className="text-[11px] text-red-500 mt-1.5">{errors.expiry}</p>}
-          </div>
-          <div>
-            <label className={lbl}>CVC <span className="text-red-500">*</span></label>
-            <input className={`${field} ${errors.cvc ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} inputMode="numeric" maxLength={4} placeholder="CVC" type="text" value={data.cvc ?? ''} onChange={e => onChange({ cvc: e.target.value.replace(/\D/g, '').slice(0, 4) })} />
-            {errors.cvc && <p className="text-[11px] text-red-500 mt-1.5">{errors.cvc}</p>}
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-6">
-          <div className="col-span-2">
-            <label className={lbl}>Account Holder Name <span className="text-red-500">*</span></label>
-            <input className={`${field} ${errors.accountName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="DR. ELIZA VANCE" type="text" value={data.accountName ?? ''} onChange={e => onChange({ accountName: e.target.value })} />
-            {errors.accountName && <p className="text-[11px] text-red-500 mt-1.5">{errors.accountName}</p>}
-          </div>
-          <div>
-            <label className={lbl}>Routing Number <span className="text-red-500">*</span></label>
-            <input className={`${field} ${errors.routingNumber ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} inputMode="numeric" maxLength={9} placeholder="021000021" type="text" value={data.routingNumber ?? ''} onChange={e => onChange({ routingNumber: e.target.value.replace(/\D/g, '').slice(0, 9) })} />
-            {errors.routingNumber && <p className="text-[11px] text-red-500 mt-1.5">{errors.routingNumber}</p>}
-          </div>
-          <div>
-            <label className={lbl}>Account Number <span className="text-red-500">*</span></label>
-            <input className={`${field} ${errors.accountNumber ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} inputMode="numeric" placeholder="000123456789" type="text" value={data.accountNumber ?? ''} onChange={e => onChange({ accountNumber: e.target.value.replace(/\D/g, '') })} />
-            {errors.accountNumber && <p className="text-[11px] text-red-500 mt-1.5">{errors.accountNumber}</p>}
-          </div>
-        </div>
-      )}
+      <Elements
+        stripe={stripePromise}
+        options={{
+          clientSecret,
+          appearance: {
+            theme: 'flat',
+            variables: {
+              colorPrimary: '#1A3C2A',
+              colorBackground: '#e4e2dd',
+              colorText: '#1b1c19',
+              colorDanger: '#ef4444',
+              borderRadius: '4px',
+              fontFamily: 'Inter, sans-serif',
+            },
+          },
+        }}
+      >
+        <StripeCardForm
+          token={token}
+          onChange={onChange}
+          onBack={onBack}
+          onAdvance={onAdvance}
+        />
+      </Elements>
     </div>
   )
 }
@@ -412,7 +555,7 @@ function ReviewForm({ token, data, onComplete }: { token: string; data: DraftDat
     { label: 'Business Info',  summary: [data.businessName, data.ein, data.npi, data.city, data.phone].filter(Boolean).join(' · ') || 'No data entered' },
     { label: 'Prescribers',    summary: [data.prescriberName, data.dea, data.specialty].filter(Boolean).join(' · ') || 'No data entered' },
     { label: 'Drug Catalog',   summary: data.drugs?.filter(d => d.drugName).map(d => d.drugName).join(', ') || 'No data entered' },
-    { label: 'Billing',        summary: data.billingMode === 'ach' ? 'ACH Transfer' : data.cardholderName ? `Card — ${data.cardholderName}` : 'No data entered' },
+    { label: 'Billing', summary: data.paymentIntentId && data.paymentStatus === 'succeeded' ? `${data.brand ? data.brand.charAt(0).toUpperCase() + data.brand.slice(1) : 'Card'} ••••${data.last4} — Paid` : 'Payment not completed' },
     { label: 'Intake',         summary: [data.displayName, data.brandColor].filter(Boolean).join(' · ') || 'No data entered' },
   ]
 
@@ -530,13 +673,23 @@ function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; 
     }
   }
 
+  function advanceStep() { setStep((s) => Math.min(STEPS.length - 1, s + 1)) }
+
   function renderStepForm() {
     const props = { data: draft, onChange: handleChange, errors: fieldErrors }
     switch (step) {
       case 0: return <BusinessInfoForm {...props} />
       case 1: return <PrescribersForm {...props} />
       case 2: return <DrugCatalogForm {...props} />
-      case 3: return <BillingForm {...props} />
+      case 3: return (
+        <BillingForm
+          token={token}
+          data={draft}
+          onChange={handleChange}
+          onBack={() => setStep((s) => s - 1)}
+          onAdvance={advanceStep}
+        />
+      )
       case 4: return <IntakeForm {...props} />
       case 5: return <ReviewForm token={token} data={draft} onComplete={onComplete} />
       default: return null
@@ -634,7 +787,8 @@ function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; 
                 <div className="bg-white p-10 rounded shadow-sm ring-1 ring-black/5">
                   {renderStepForm()}
 
-                  {step < 5 && (
+                  {/* Billing step manages its own navigation buttons */}
+                  {step < 5 && step !== 3 && (
                     <div className="pt-10 flex justify-end items-center gap-4">
                       {step > 0 && (
                         <button type="button" onClick={() => setStep((s) => s - 1)}
@@ -650,7 +804,7 @@ function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; 
                           }
                           setFieldErrors({})
                           await handleSaveDraft()
-                          setStep((s) => Math.min(STEPS.length - 1, s + 1))
+                          advanceStep()
                         }}
                         className="px-10 py-4 bg-[#1A3C2A] text-white text-sm font-bold rounded shadow-xl shadow-[#1A3C2A]/10 hover:opacity-90 transition-all flex items-center gap-2">
                         <span>Save &amp; Continue</span>

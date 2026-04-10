@@ -89,9 +89,9 @@ export type InviteDetail = {
     prescriberName?: string; dea?: string; license?: string; licenseState?: string; specialty?: string
     // catalog
     drugs?: DrugEntry[]
-    // billing
-    billingMode?: string; cardholderName?: string; cardNumber?: string
-    accountName?: string; routingNumber?: string; accountNumber?: string
+    // billing — Stripe-safe fields only, never raw card data
+    paymentIntentId?: string; paymentStatus?: string; paymentClientSecret?: string
+    cardholderName?: string; last4?: string; brand?: string
     // intake
     displayName?: string; brandColor?: string; description?: string; yearsInPractice?: string; locations?: string
   } | null
@@ -254,5 +254,48 @@ export async function verifyInvite(
   } catch (err) {
     console.error('[verifyInvite] fetch failed:', url, (err as Error)?.message)
     return { error: 'Network error. Please try again.' }
+  }
+}
+
+export async function createPaymentIntent(
+  token: string,
+): Promise<{ clientSecret: string } | { error: string }> {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  try {
+    const { stripe } = await import('@/lib/stripe')
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: 250000, // $2,500.00 in cents
+      currency: 'usd',
+      metadata: { token },
+    })
+    if (!paymentIntent.client_secret) return { error: 'Failed to create payment.' }
+    return { clientSecret: paymentIntent.client_secret }
+  } catch (err) {
+    console.error('[createPaymentIntent]', (err as Error)?.message)
+    return { error: 'Failed to initialize payment. Please try again.' }
+  }
+}
+
+export async function retrievePaymentDetails(
+  paymentIntentId: string,
+): Promise<{ last4: string; brand: string } | { error: string }> {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  try {
+    const { stripe } = await import('@/lib/stripe')
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ['payment_method'],
+    })
+    const pm = pi.payment_method
+    if (!pm || typeof pm === 'string' || !pm.card) {
+      return { error: 'Could not retrieve card details.' }
+    }
+    return { last4: pm.card.last4, brand: pm.card.brand }
+  } catch (err) {
+    console.error('[retrievePaymentDetails]', (err as Error)?.message)
+    return { error: 'Failed to retrieve payment details.' }
   }
 }

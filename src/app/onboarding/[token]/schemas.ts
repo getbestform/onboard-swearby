@@ -21,17 +21,11 @@ export const drugCatalogSchema = z.object({
   drugs: z.array(drugEntrySchema).min(1, 'At least one drug entry is required.'),
 })
 
-export const billingCardSchema = z.object({
-  cardholderName: requiredString('Cardholder Name is required.'),
-  cardNumber:     z.string().min(19, 'Enter a valid 16-digit card number.'),
-  expiry:         z.string().min(7, 'Enter a valid expiry date.'),
-  cvc:            z.string().min(3, 'Enter a valid CVC.'),
-})
-
-export const billingAchSchema = z.object({
-  accountName:   requiredString('Account Holder Name is required.'),
-  routingNumber: z.string().length(9, 'Routing number must be 9 digits.'),
-  accountNumber: z.string().min(4, 'Account number is required.'),
+// Billing is validated by Stripe Elements on the client.
+// We only verify that a successful PaymentIntent was recorded before advancing.
+export const billingSchema = z.object({
+  paymentIntentId: requiredString('Payment is required to continue.'),
+  paymentStatus:   z.literal('succeeded', { error: 'Payment must be completed before continuing.' }),
 })
 
 export const intakeSchema = z.object({
@@ -46,7 +40,7 @@ export function validateStep(step: number, draft: Record<string, unknown>): Fiel
     0: businessInfoSchema,
     1: prescribersSchema,
     2: drugCatalogSchema,
-    3: draft.billingMode === 'ach' ? billingAchSchema : billingCardSchema,
+    3: billingSchema,
     4: intakeSchema,
   }
 
