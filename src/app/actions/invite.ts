@@ -94,6 +94,8 @@ export type InviteDetail = {
     cardholderName?: string; last4?: string; brand?: string
     // intake
     displayName?: string; brandColor?: string; description?: string; yearsInPractice?: string; locations?: string; logoUrl?: string
+    // schedule
+    calBookingUid?: string; calBookingStartTime?: string
   } | null
 }
 

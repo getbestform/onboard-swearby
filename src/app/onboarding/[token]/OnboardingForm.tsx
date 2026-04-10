@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import CalEmbed from '@calcom/embed-react'
+import CalEmbed, { getCalApi } from '@calcom/embed-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { verifyInvite, saveDraft, loadDraft, submitApplication, createPaymentIntent, retrievePaymentDetails, uploadClinicLogo } from '@/app/actions/invite'
@@ -144,6 +144,8 @@ type DraftData = {
   cardholderName?: string; last4?: string; brand?: string
   // intake
   displayName?: string; brandColor?: string; description?: string; yearsInPractice?: string; locations?: string; logoUrl?: string
+  // schedule
+  calBookingUid?: string; calBookingStartTime?: string
 }
 
 // ── Step form components (controlled) ────────────────────────────────────────
@@ -629,8 +631,25 @@ function IntakeForm({ token, data, onChange, errors = {} }: { token: string; dat
   )
 }
 
-function ScheduleForm() {
+function ScheduleForm({ onBooked }: { onBooked: (uid: string, startTime: string) => void }) {
   const raw = process.env.NEXT_PUBLIC_CAL_ONBOARDING_LINK
+
+  useEffect(() => {
+    if (!raw) return
+    let cancelled = false
+
+    getCalApi({ namespace: 'onboarding' }).then((cal) => {
+      if (cancelled) return
+      cal('on', {
+        action: 'bookingSuccessfulV2',
+        callback: (e: CustomEvent<{ data: { uid?: string; startTime?: string } }>) => {
+          onBooked(e.detail.data.uid ?? '', e.detail.data.startTime ?? '')
+        },
+      })
+    })
+
+    return () => { cancelled = true }
+  }, [onBooked])
 
   if (!raw) {
     return (
@@ -676,6 +695,7 @@ function ReviewForm({ token, data, onComplete }: { token: string; data: DraftDat
     { label: 'Drug Catalog',   summary: data.drugs?.filter(d => d.drugName).map(d => d.drugName).join(', ') || 'No data entered' },
     { label: 'Billing', summary: data.paymentIntentId && data.paymentStatus === 'succeeded' ? `${data.brand ? data.brand.charAt(0).toUpperCase() + data.brand.slice(1) : 'Card'}${data.last4 ? ` ••••${data.last4}` : ''} — Paid` : 'Payment not completed' },
     { label: 'Intake',         summary: [data.displayName, data.brandColor, data.logoUrl ? 'Logo uploaded' : ''].filter(Boolean).join(' · ') || 'No data entered' },
+    { label: 'Onboarding Call', summary: data.calBookingStartTime ? new Date(data.calBookingStartTime).toLocaleString(undefined, { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Not yet scheduled' },
   ]
 
   async function handleSubmit() {
@@ -810,7 +830,15 @@ function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; 
         />
       )
       case 4: return <IntakeForm token={token} {...props} />
-      case 5: return <ScheduleForm />
+      case 5: return (
+        <ScheduleForm
+          onBooked={async (uid, startTime) => {
+            handleChange({ calBookingUid: uid, calBookingStartTime: startTime })
+            await handleSaveDraft()
+            advanceStep()
+          }}
+        />
+      )
       case 6: return <ReviewForm token={token} data={draft} onComplete={onComplete} />
       default: return null
     }
