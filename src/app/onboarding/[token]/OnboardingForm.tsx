@@ -6,6 +6,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { verifyInvite, saveDraft, loadDraft, submitApplication, createPaymentIntent, retrievePaymentDetails, uploadClinicLogo } from '@/app/actions/invite'
 import { validateStep, type FieldErrors } from './schemas'
+import { formatPhone, formatEIN } from '@/lib/utils'
 
 if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
   console.error('Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY — Stripe payment will not load.')
@@ -150,17 +151,6 @@ type DraftData = {
 
 // ── Step form components (controlled) ────────────────────────────────────────
 
-function formatPhone(val: string) {
-  const d = val.replace(/\D/g, '').slice(0, 10)
-  if (d.length < 4) return d
-  if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`
-  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`
-}
-
-function formatEIN(val: string) {
-  const d = val.replace(/\D/g, '').slice(0, 9)
-  return d.length > 2 ? `${d.slice(0, 2)}-${d.slice(2)}` : d
-}
 
 function BusinessInfoForm({ data, onChange, errors = {} }: { data: DraftData; onChange: (d: Partial<DraftData>) => void; errors?: FieldErrors }) {
   return (

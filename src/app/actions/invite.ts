@@ -266,8 +266,8 @@ export async function createPaymentIntent(
     return { error: 'Server misconfiguration.' }
   }
   try {
-    const { stripe } = await import('@/lib/stripe')
-    const paymentIntent = await stripe.paymentIntents.create({
+    const { getStripe } = await import('@/lib/stripe')
+    const paymentIntent = await getStripe().paymentIntents.create({
       amount: 250000, // $2,500.00 in cents
       currency: 'usd',
       metadata: { token },
@@ -359,8 +359,8 @@ export async function retrievePaymentDetails(
     return { error: 'Server misconfiguration.' }
   }
   try {
-    const { stripe } = await import('@/lib/stripe')
-    const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+    const { getStripe } = await import('@/lib/stripe')
+    const pi = await getStripe().paymentIntents.retrieve(paymentIntentId, {
       expand: ['payment_method'],
     })
     const pm = pi.payment_method

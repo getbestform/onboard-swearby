@@ -3,31 +3,19 @@
 import { useActionState, useState, useEffect, useCallback, useTransition } from 'react'
 import Link from 'next/link'
 import { sendInvite, listInvites, approveInvite, denyInvite, type Invite } from '@/app/actions/invite'
+import { fmtDate, getInviteStatusClasses } from '@/lib/utils'
 
 const entityTypes = ['LLC', 'PLLC', 'Corporation', 'PC', 'Partnership', 'Sole Proprietor', 'Other']
 const statusOptions = ['pending', 'completed', 'approved', 'denied', 'expired']
 
 type FieldErrors = Record<string, string | string[]>
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-
 function statusBadge(status: string) {
-  const map: Record<string, string> = {
-    pending:   'bg-amber-50 text-amber-700 border-amber-200',
-    completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    approved:  'bg-blue-50 text-blue-700 border-blue-200',
-    denied:    'bg-rose-50 text-rose-700 border-rose-200',
-    expired:   'bg-red-50 text-red-600 border-red-200',
-  }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium border ${map[status] ?? 'bg-secondary/10 text-secondary border-secondary/20'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium border ${getInviteStatusClasses(status)}`}>
       {status}
     </span>
   )
-}
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 // ── sub-components ────────────────────────────────────────────────────────────

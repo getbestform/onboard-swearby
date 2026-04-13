@@ -1,20 +1,11 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getInviteDetail, type DrugEntry } from '@/app/actions/invite'
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
+import { fmtDate, getInviteStatusClasses } from '@/lib/utils'
 
 function statusBadge(status: string) {
-  const map: Record<string, string> = {
-    pending:   'bg-amber-50 text-amber-700 border-amber-200',
-    completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    accepted:  'bg-emerald-50 text-emerald-700 border-emerald-200',
-    expired:   'bg-red-50 text-red-600 border-red-200',
-  }
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium border ${map[status] ?? 'bg-secondary/10 text-secondary border-secondary/20'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-medium border ${getInviteStatusClasses(status)}`}>
       {status}
     </span>
   )
