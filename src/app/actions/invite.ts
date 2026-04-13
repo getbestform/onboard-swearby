@@ -280,6 +280,56 @@ export async function createPaymentIntent(
   }
 }
 
+export async function approveInvite(
+  token: string,
+): Promise<{ success: true; clinicId: string } | { error: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Session expired. Please sign in again.' }
+
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  const url = `${process.env.VERTI_API_URL}/api/partner-invites/${token}/approve`
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to approve invite.' }
+    return { success: true, clinicId: data.clinicId }
+  } catch (err) {
+    console.error('[approveInvite] fetch failed:', url, (err as Error)?.message)
+    return { error: 'Network error. Please try again.' }
+  }
+}
+
+export async function denyInvite(
+  token: string,
+): Promise<{ success: true } | { error: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Session expired. Please sign in again.' }
+
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  const url = `${process.env.VERTI_API_URL}/api/partner-invites/${token}/deny`
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to deny invite.' }
+    return { success: true }
+  } catch (err) {
+    console.error('[denyInvite] fetch failed:', url, (err as Error)?.message)
+    return { error: 'Network error. Please try again.' }
+  }
+}
+
 export async function uploadClinicLogo(
   token: string,
   formData: FormData,

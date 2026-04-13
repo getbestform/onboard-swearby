@@ -2,10 +2,10 @@
 
 import { useActionState, useState, useEffect, useCallback, useTransition } from 'react'
 import Link from 'next/link'
-import { sendInvite, listInvites, type Invite } from '@/app/actions/invite'
+import { sendInvite, listInvites, approveInvite, denyInvite, type Invite } from '@/app/actions/invite'
 
 const entityTypes = ['LLC', 'PLLC', 'Corporation', 'PC', 'Partnership', 'Sole Proprietor', 'Other']
-const statusOptions = ['pending', 'completed', 'expired']
+const statusOptions = ['pending', 'completed', 'approved', 'denied', 'expired']
 
 type FieldErrors = Record<string, string | string[]>
 
@@ -15,6 +15,8 @@ function statusBadge(status: string) {
   const map: Record<string, string> = {
     pending:   'bg-amber-50 text-amber-700 border-amber-200',
     completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    approved:  'bg-blue-50 text-blue-700 border-blue-200',
+    denied:    'bg-rose-50 text-rose-700 border-rose-200',
     expired:   'bg-red-50 text-red-600 border-red-200',
   }
   return (
@@ -184,6 +186,8 @@ export default function InvitesPage() {
   const [filterEntityType, setFilterEntityType] = useState('')
 
   const [isPending, startTransition] = useTransition()
+  const [actioning, setActioning] = useState<{ token: string; type: 'approve' | 'deny' } | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const load = useCallback((opts: { page: number; search: string; status: string; entityType: string }) => {
     setError(null)
@@ -213,6 +217,18 @@ export default function InvitesPage() {
     if (key === 'search')     setSearch(value)
     if (key === 'status')     setFilterStatus(value)
     if (key === 'entityType') setFilterEntityType(value)
+  }
+
+  async function handleAction(token: string, type: 'approve' | 'deny') {
+    setActioning({ token, type })
+    setActionError(null)
+    const result = type === 'approve' ? await approveInvite(token) : await denyInvite(token)
+    setActioning(null)
+    if ('error' in result) {
+      setActionError(result.error)
+    } else {
+      setInvites((prev) => prev.map((inv) => inv.token === token ? { ...inv, status: type === 'approve' ? 'approved' : 'denied' } : inv))
+    }
   }
 
   function handleNewInviteSuccess() {
@@ -285,6 +301,17 @@ export default function InvitesPage() {
         </div>
       </div>
 
+      {actionError && (
+        <div className="mb-4 flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-lg px-4 py-2.5 text-sm text-rose-700">
+          <span className="flex-1">{actionError}</span>
+          <button onClick={() => setActionError(null)} className="shrink-0 hover:opacity-70 transition-opacity">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white rounded-xl border border-secondary/15 overflow-hidden">
         <table className="w-full text-sm">
@@ -296,20 +323,21 @@ export default function InvitesPage() {
               <th className="text-left text-[10px] uppercase tracking-widest text-secondary font-medium px-5 py-3">Status</th>
               <th className="text-left text-[10px] uppercase tracking-widest text-secondary font-medium px-5 py-3">Expires</th>
               <th className="text-left text-[10px] uppercase tracking-widest text-secondary font-medium px-5 py-3">Invited</th>
+              <th className="text-left text-[10px] uppercase tracking-widest text-secondary font-medium px-5 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {isPending ? (
               <tr>
-                <td colSpan={6} className="px-5 py-12 text-center text-sm text-secondary">Loading…</td>
+                <td colSpan={7} className="px-5 py-12 text-center text-sm text-secondary">Loading…</td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={6} className="px-5 py-12 text-center text-sm text-tertiary">{error}</td>
+                <td colSpan={7} className="px-5 py-12 text-center text-sm text-tertiary">{error}</td>
               </tr>
             ) : invites.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-12 text-center text-sm text-secondary">No invites found.</td>
+                <td colSpan={7} className="px-5 py-12 text-center text-sm text-secondary">No invites found.</td>
               </tr>
             ) : invites.map((inv) => (
               <tr key={inv.id} className="border-b border-secondary/8 hover:bg-secondary/5 transition-colors">
@@ -331,6 +359,28 @@ export default function InvitesPage() {
                 <td className="px-5 py-3.5">{statusBadge(inv.status)}</td>
                 <td className="px-5 py-3.5 text-secondary">{fmtDate(inv.expiresAt)}</td>
                 <td className="px-5 py-3.5 text-secondary">{fmtDate(inv.createdAt)}</td>
+                <td className="px-5 py-3.5">
+                  {inv.status === 'completed' ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleAction(inv.token, 'approve')}
+                        disabled={actioning?.token === inv.token}
+                        className="flex items-center gap-1.5 px-3 h-7 rounded border border-blue-200 bg-blue-50 text-[11px] font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {actioning?.token === inv.token && actioning.type === 'approve' ? '…' : 'Approve'}
+                      </button>
+                      <button
+                        onClick={() => handleAction(inv.token, 'deny')}
+                        disabled={actioning?.token === inv.token}
+                        className="flex items-center gap-1.5 px-3 h-7 rounded border border-rose-200 bg-rose-50 text-[11px] font-medium text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {actioning?.token === inv.token && actioning.type === 'deny' ? '…' : 'Deny'}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-secondary/40 text-xs">—</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
