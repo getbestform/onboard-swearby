@@ -100,7 +100,7 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
 
   return (
     <div
-      className="fixed inset-0 z-20 flex flex-col overflow-hidden transition-colors duration-700 [font-family:var(--font-plus-jakarta)]"
+      className="flex-1 flex flex-col overflow-hidden relative transition-colors duration-700 [font-family:var(--font-plus-jakarta)]"
       style={{ background: BG[phase] }}
     >
       <style>{`
@@ -109,28 +109,9 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
         @keyframes enter-from-above { from { opacity:0; transform:translateY(-48px) } to { opacity:1; transform:translateY(0) } }
       `}</style>
 
-      {/* Botanical decoration — top-left */}
-      <div className="absolute pointer-events-none select-none top-[65px] left-[-15px] w-[200px] h-[175px]">
-        <img src="/wlc-leaf.svg" alt="" className="w-full h-full" />
-      </div>
-      {/* Botanical decoration — bottom-right */}
-      <div className="absolute pointer-events-none select-none bottom-[65px] right-[-15px] w-[200px] h-[175px]">
-        <img src="/wlc-leaf-down.svg" alt="" className="w-full h-full" />
-      </div>
-
-      {/* Top bar */}
-      <header className="relative z-10 px-10 pt-8 flex justify-center">
-        <img
-          src="/swearby-logo.svg"
-          alt="Swearby"
-          className="h-7 w-auto transition-[filter] duration-700"
-          style={{ filter: isDark ? 'brightness(0) invert(1)' : 'none' }}
-        />
-      </header>
-
       {/* Main content */}
       <main
-        className={`relative z-10 flex-1 flex flex-col justify-center pb-12 md:pb-20 pt-12 ${phase === 4 ? 'px-6 md:px-10' : 'px-10 md:px-20 lg:px-28'}`}
+        className={`relative z-10 flex-1 flex flex-col justify-center pb-12 md:pb-20 px-8 md:px-12 mx-auto max-w-[1024px] w-full pt-8`}
         style={mainStyle()}
       >
         {/* Badge — phases 1–3 only */}

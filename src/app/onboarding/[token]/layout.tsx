@@ -26,7 +26,7 @@ export default function OnboardingTokenLayout({ children }: { children: React.Re
   return (
     <div
       className="min-h-screen flex flex-col relative overflow-hidden"
-      style={{ background: 'linear-gradient(160deg, #0d2818 0%, #1a3c2a 40%, #1e4230 100%)' }}
+      style={{ background: '#263C30' }}
     >
       <LeafTopLeft />
       <LeafBottomRight />
@@ -41,7 +41,7 @@ export default function OnboardingTokenLayout({ children }: { children: React.Re
         />
       </header>
 
-      <div className="relative z-10 flex-1 flex flex-col">
+      <div className="relative z-10 flex-1 flex flex-col overflow-hidden">
         {children}
       </div>
 
