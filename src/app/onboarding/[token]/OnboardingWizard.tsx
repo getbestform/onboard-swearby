@@ -130,7 +130,7 @@ export function OnboardingWizard({ token, initialDraft, onComplete }: { token: s
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf9f4] text-[#1b1c19] [font-family:var(--font-plus-jakarta)]">
+    <div className="fixed inset-0 z-20 overflow-auto bg-[#fbf9f4] text-[#1b1c19] [font-family:var(--font-plus-jakarta)]">
 
       {/* Top nav */}
       <header className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-8 py-4 border-b border-[#e4e2dd] bg-[#fbf9f4]">

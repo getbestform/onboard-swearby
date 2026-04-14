@@ -4,7 +4,7 @@ import { Icon } from './Icon'
 
 export function CompleteStep() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center [font-family:var(--font-plus-jakarta)]"
+    <div className="fixed inset-0 z-20 flex flex-col items-center justify-center [font-family:var(--font-plus-jakarta)]"
       style={{ background: 'linear-gradient(145deg, #022616 0%, #1a3c2a 100%)' }}>
       <div className="text-center px-8">
         <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-8">

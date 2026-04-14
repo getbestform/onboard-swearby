@@ -100,7 +100,7 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
 
   return (
     <div
-      className="min-h-screen relative flex flex-col overflow-hidden transition-colors duration-700 [font-family:var(--font-plus-jakarta)]"
+      className="fixed inset-0 z-20 flex flex-col overflow-hidden transition-colors duration-700 [font-family:var(--font-plus-jakarta)]"
       style={{ background: BG[phase] }}
     >
       <style>{`
