@@ -11,7 +11,7 @@ const LOGOS: { src: string; isSwearby?: boolean }[] = [
 
 export function Phase4() {
   return (
-    <div className="flex flex-col w-full">
+    <div className="flex flex-col w-full h-full">
       {/* Headline */}
       <h1
         className="font-sans text-center align-middle"
