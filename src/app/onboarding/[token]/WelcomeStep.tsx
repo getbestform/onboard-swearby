@@ -116,11 +116,9 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
       >
         {/* Badge — phases 1–3 only */}
         {phase < 4 && (
-          <div className="flex items-center gap-2.5 mb-8">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M6 0L7.35 4.65L12 6L7.35 7.35L6 12L4.65 7.35L0 6L4.65 4.65L6 0Z" fill="#BDA763"/>
-            </svg>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.25em]" style={{ color: '#BDA763' }}>
+          <div className="flex items-center justify-center gap-2.5 mb-8">
+            <img src="/verified.svg" alt="" className="w-4 h-4" aria-hidden="true" />
+            <span className="text-[14px] font-semibold uppercase tracking-[5px]" style={{ color: '#BDA763' }}>
               Access Verified
             </span>
           </div>
@@ -136,7 +134,7 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
         <button
           type="button"
           onClick={() => go('forward')}
-          className="mt-16 flex flex-col items-center md:items-start gap-2 group w-fit mx-auto md:mx-0"
+          className="absolute bottom-[30px] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 group w-fit"
         >
           <span
             className="text-[12px] tracking-[0.2em] transition-colors"
