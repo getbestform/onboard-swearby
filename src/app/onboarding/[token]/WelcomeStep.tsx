@@ -87,6 +87,23 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
   const name   = ownerName ?? 'your partner'
   const isDark = phase <= 2
 
+  useEffect(() => {
+    const root       = document.getElementById('onboarding-root')
+    const logo       = document.getElementById('onboarding-logo')
+    const footerText = document.getElementById('onboarding-footer-text')
+    const TRANSITION = '0.7s ease'
+
+    if (root)       { root.style.transition = `background-color ${TRANSITION}`; root.style.backgroundColor = BG[phase] }
+    if (logo)       { logo.style.transition = `filter ${TRANSITION}`;           logo.style.filter = isDark ? 'brightness(0) invert(1)' : 'none' }
+    if (footerText) { footerText.style.transition = `color ${TRANSITION}`;      footerText.style.color = isDark ? '' : 'rgba(38,60,48,0.45)' }
+
+    return () => {
+      if (root)       root.style.backgroundColor = '#263C30'
+      if (logo)       logo.style.filter          = 'brightness(0) invert(1)'
+      if (footerText) footerText.style.color      = ''
+    }
+  }, [phase, isDark])
+
   const mainStyle = (): React.CSSProperties => {
     const t = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out'
     switch (anim) {
@@ -100,8 +117,7 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
 
   return (
     <div
-      className="flex-1 flex flex-col overflow-hidden relative transition-colors duration-700 [font-family:var(--font-plus-jakarta)]"
-      style={{ background: BG[phase] }}
+      className="flex-1 flex flex-col overflow-hidden relative [font-family:var(--font-plus-jakarta)]"
     >
       <style>{`
         @keyframes slide-down       { 0%,100% { transform:translateY(0) } 50% { transform:translateY(5px) } }
