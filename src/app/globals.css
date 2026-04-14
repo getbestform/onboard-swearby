@@ -15,6 +15,7 @@
   --color-tertiary: #512A2D;
   --color-neutral: #FEF9F1;
 
+  --font-plus-jakarta: var(--font-plus-jakarta-sans);
   --font-sans: var(--font-inter);
   --font-serif: var(--font-newsreader);
 }

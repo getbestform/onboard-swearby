@@ -110,27 +110,22 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
       `}</style>
 
       {/* Botanical decoration — top-left */}
-      <div className="absolute top-0 left-0 pointer-events-none select-none opacity-20 w-56 h-56">
-        <svg viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-          <path d="M30 200 Q60 120 110 80 Q80 140 30 200Z" stroke="#a9cfb6" strokeWidth="1" fill="none"/>
-          <path d="M30 200 Q90 150 150 60 Q100 130 30 200Z" stroke="#a9cfb6" strokeWidth="1" fill="none"/>
-          <path d="M30 200 Q50 100 120 40" stroke="#a9cfb6" strokeWidth="1"/>
-          <path d="M75 130 Q55 100 40 90" stroke="#a9cfb6" strokeWidth="0.8"/>
-          <path d="M95 105 Q80 75 85 55" stroke="#a9cfb6" strokeWidth="0.8"/>
-          <path d="M108 88 Q110 60 130 40" stroke="#a9cfb6" strokeWidth="0.8"/>
-          <path d="M30 200 Q10 160 5 120" stroke="#a9cfb6" strokeWidth="1"/>
-          <path d="M18 165 Q5 150 2 130" stroke="#a9cfb6" strokeWidth="0.7"/>
-        </svg>
+      <div className="absolute pointer-events-none select-none top-[65px] left-[-15px] w-[200px] h-[175px]">
+        <img src="/wlc-leaf.svg" alt="" className="w-full h-full" />
+      </div>
+      {/* Botanical decoration — bottom-right */}
+      <div className="absolute pointer-events-none select-none bottom-[65px] right-[-15px] w-[200px] h-[175px]">
+        <img src="/wlc-leaf-down.svg" alt="" className="w-full h-full" />
       </div>
 
       {/* Top bar */}
-      <header className={`relative z-10 px-10 pt-8 ${phase === 4 ? 'text-center' : ''}`}>
-        <span
-          className="text-sm font-medium tracking-wide transition-colors duration-700"
-          style={{ color: isDark ? 'white' : '#263C30' }}
-        >
-          Swearby
-        </span>
+      <header className="relative z-10 px-10 pt-8 flex justify-center">
+        <img
+          src="/swearby-logo.svg"
+          alt="Swearby"
+          className="h-7 w-auto transition-[filter] duration-700"
+          style={{ filter: isDark ? 'brightness(0) invert(1)' : 'none' }}
+        />
       </header>
 
       {/* Main content */}
@@ -160,19 +155,19 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
         <button
           type="button"
           onClick={() => go('forward')}
-          className="mt-14 flex flex-col items-start gap-2 group w-fit"
+          className="mt-8 flex flex-col items-center md:items-start gap-2 group w-fit mx-auto md:mx-0"
         >
           <span
-            className="text-[10px] uppercase tracking-[0.2em] transition-colors"
-            style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(38,60,48,0.4)' }}
+            className="text-[10px] tracking-[0.2em] transition-colors"
+            style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(53, 51, 49, 1)' }}
           >
             Scroll down
           </span>
-          <svg width="35" height="51" viewBox="0 0 35 51" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="w-7 opacity-50 group-hover:opacity-80 transition-opacity">
-            <path d="M31.3054 27.1045L29.9704 26.1646C34.3372 19.9626 33.607 11.5616 28.2343 6.18885C22.1584 0.112877 12.2723 0.112959 6.19647 6.18877C0.847267 11.538 0.100903 19.916 4.42186 26.1096L3.08293 27.0437C0.799676 23.7709 -0.274034 19.7664 0.0596787 15.7678C0.39731 11.7216 2.16677 7.90958 5.04211 5.03433C11.7546 -1.67814 22.6765 -1.67805 29.3889 5.03424C32.2733 7.91872 34.0438 11.7433 34.3741 15.8033C34.7007 19.8166 33.6109 23.8301 31.3054 27.1045Z" fill={isDark ? 'white' : '#353331'}/>
+          <svg width="35" height="51" viewBox="0 0 35 51" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="group-hover:opacity-80 transition-opacity">
+            <path d="M31.3054 27.1045L29.9704 26.1646C34.3372 19.9626 33.607 11.5616 28.2343 6.18885C22.1584 0.112877 12.2723 0.112959 6.19647 6.18877C0.847267 11.538 0.100903 19.916 4.42186 26.1096L3.08293 27.0437C0.799676 23.7709 -0.274034 19.7664 0.0596787 15.7678C0.39731 11.7216 2.16677 7.90958 5.04211 5.03433C11.7546 -1.67814 22.6765 -1.67805 29.3889 5.03424C32.2733 7.91872 34.0438 11.7433 34.3741 15.8033C34.7007 19.8166 33.6109 23.8301 31.3054 27.1045Z" fill={isDark ? 'white' : 'rgba(53, 51, 49, 1)'}/>
             <g style={{ animation: 'slide-down 1.2s ease-in-out infinite' }}>
-              <path d="M16.3604 14.5718H17.8183V49.0776H16.3604V14.5718Z" fill={isDark ? 'white' : '#353331'}/>
-              <path d="M17.2151 50.0965L7.94727 40.8285L9.10179 39.6741L17.2151 47.7874L25.3286 39.6741L26.4831 40.8285L17.2151 50.0965Z" fill={isDark ? 'white' : '#353331'}/>
+              <path d="M16.3604 14.5718H17.8183V49.0776H16.3604V14.5718Z" fill={isDark ? 'white' : 'rgba(53, 51, 49, 1)'}/>
+              <path d="M17.2151 50.0965L7.94727 40.8285L9.10179 39.6741L17.2151 47.7874L25.3286 39.6741L26.4831 40.8285L17.2151 50.0965Z" fill={isDark ? 'white' : 'rgba(53, 51, 49, 1)'}/>
             </g>
           </svg>
         </button>
