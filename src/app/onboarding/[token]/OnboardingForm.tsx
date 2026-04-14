@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { saveDraft } from '@/app/actions/invite'
 import { VerifyStep } from './VerifyStep'
 import { WelcomeStep } from './WelcomeStep'
@@ -17,14 +18,21 @@ interface OnboardingFormProps {
 
 type FlowStep = 'verify' | 'welcome' | 'wizard' | 'complete'
 
-function initialFlowStep(initiallyVerified?: boolean, initialDraft?: Record<string, unknown>): FlowStep {
+function initialFlowStep(
+  initiallyVerified?: boolean,
+  initialDraft?: Record<string, unknown>,
+  forceWelcome?: boolean,
+): FlowStep {
   if (!initiallyVerified) return 'verify'
+  if (forceWelcome) return 'welcome'
   if (initialDraft?.welcomeDone === true) return 'wizard'
   return 'welcome'
 }
 
 export default function OnboardingForm({ token, ownerName, email, initiallyVerified, initialDraft }: OnboardingFormProps) {
-  const [step, setStep] = useState<FlowStep>(initialFlowStep(initiallyVerified, initialDraft))
+  const searchParams = useSearchParams()
+  const forceWelcome = searchParams.get('phase') === 'welcome'
+  const [step, setStep] = useState<FlowStep>(initialFlowStep(initiallyVerified, initialDraft, forceWelcome))
 
   if (step === 'verify') return <VerifyStep token={token} ownerName={ownerName} email={email} onVerified={() => setStep('welcome')} />
   if (step === 'welcome') return (

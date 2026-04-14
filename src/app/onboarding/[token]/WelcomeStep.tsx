@@ -1,24 +1,29 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { Phase1 } from './welcome/Phase1'
+import { Phase2 } from './welcome/Phase2'
+import { Phase3 } from './welcome/Phase3'
+import { Phase4 } from './welcome/Phase4'
 
 type AnimState = 'idle' | 'exit-up' | 'exit-down' | 'enter-from-below' | 'enter-from-above'
 
-const TOTAL_PHASES = 3
+const TOTAL_PHASES = 4
 
 const BG: Record<number, string> = {
   1: '#263C30',
   2: '#263C30',
   3: '#FBF7F2',
+  4: '#FBF7F2',
 }
 
 export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?: string; onComplete: () => void }) {
   const [phase, setPhase] = useState(1)
   const [anim, setAnim]   = useState<AnimState>('idle')
 
-  const phaseRef   = useRef(phase)
-  const animRef    = useRef(anim)
-  const triggered  = useRef(false)
+  const phaseRef  = useRef(phase)
+  const animRef   = useRef(anim)
+  const triggered = useRef(false)
 
   useEffect(() => { phaseRef.current = phase }, [phase])
   useEffect(() => { animRef.current  = anim  }, [anim])
@@ -30,15 +35,17 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
     if (direction === 'back'    && phaseRef.current === 1) return
 
     triggered.current = true
-    const nextPhase = direction === 'forward' ? phaseRef.current + 1 : phaseRef.current - 1
+    const next = direction === 'forward' ? phaseRef.current + 1 : phaseRef.current - 1
 
-    setAnim(direction === 'forward' ? 'exit-up' : 'exit-down')
-    animRef.current = direction === 'forward' ? 'exit-up' : 'exit-down'
+    const exitAnim  = direction === 'forward' ? 'exit-up'          : 'exit-down'
+    const enterAnim = direction === 'forward' ? 'enter-from-below' : 'enter-from-above'
+
+    setAnim(exitAnim)
+    animRef.current = exitAnim
 
     setTimeout(() => {
-      setPhase(nextPhase)
-      phaseRef.current = nextPhase
-      const enterAnim = direction === 'forward' ? 'enter-from-below' : 'enter-from-above'
+      setPhase(next)
+      phaseRef.current = next
       setAnim(enterAnim)
       animRef.current = enterAnim
       setTimeout(() => {
@@ -77,8 +84,8 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
     }
   }, [])
 
-  const name = ownerName ?? 'your partner'
-  const isDark = phase < 3
+  const name   = ownerName ?? 'your partner'
+  const isDark = phase <= 2
 
   const mainStyle = (): React.CSSProperties => {
     const t = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out'
@@ -117,7 +124,7 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
       </div>
 
       {/* Top bar */}
-      <header className="relative z-10 px-10 pt-8">
+      <header className={`relative z-10 px-10 pt-8 ${phase === 4 ? 'text-center' : ''}`}>
         <span
           className="text-sm font-medium tracking-wide transition-colors duration-700"
           style={{ color: isDark ? 'white' : '#263C30' }}
@@ -128,49 +135,26 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
 
       {/* Main content */}
       <main
-        className="relative z-10 flex-1 flex flex-col justify-center px-10 md:px-20 lg:px-28 pb-20 pt-12"
+        className={`relative z-10 flex-1 flex flex-col justify-center pb-20 pt-12 ${phase === 4 ? 'px-6 md:px-10' : 'px-10 md:px-20 lg:px-28'}`}
         style={mainStyle()}
       >
-        {/* Badge */}
-        <div className="flex items-center gap-2.5 mb-8">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M6 0L7.35 4.65L12 6L7.35 7.35L6 12L4.65 7.35L0 6L4.65 4.65L6 0Z" fill="#BDA763"/>
-          </svg>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.25em]" style={{ color: '#BDA763' }}>
-            Access Verified
-          </span>
-        </div>
-
-        {/* Headline */}
-        {phase === 1 && (
-          <h1 className="font-sans font-bold leading-[1.08] tracking-tight" style={{ fontSize: 'clamp(2.8rem, 6vw, 5.5rem)' }}>
-            <span className="text-white">Referred by </span>
-            <span style={{ color: '#BDA763' }}>{name}</span>
-            <br />
-            <span className="text-white">founding partner.</span>
-          </h1>
+        {/* Badge — phases 1–3 only */}
+        {phase < 4 && (
+          <div className="flex items-center gap-2.5 mb-8">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M6 0L7.35 4.65L12 6L7.35 7.35L6 12L4.65 7.35L0 6L4.65 4.65L6 0Z" fill="#BDA763"/>
+            </svg>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.25em]" style={{ color: '#BDA763' }}>
+              Access Verified
+            </span>
+          </div>
         )}
 
-        {phase === 2 && (
-          <h1 className="font-sans font-bold leading-[1.08] tracking-tight" style={{ fontSize: 'clamp(2.8rem, 6vw, 5.5rem)' }}>
-            <span className="text-white">{"Here's why"}</span>
-            <br />
-            <span style={{ color: '#BDA763' }}>{name}</span>
-            <span className="text-white"> sent you.</span>
-          </h1>
-        )}
-
-        {phase === 3 && (
-          <>
-            <h1 className="font-sans font-bold leading-[1.06] tracking-tight" style={{ fontSize: 'clamp(2.8rem, 6vw, 5.5rem)', color: '#1C1C1A' }}>
-              Your software is<br />
-              holding <span style={{ color: '#BDA763' }}>you back.</span>
-            </h1>
-            <p className="mt-6 text-sm leading-relaxed max-w-sm" style={{ color: '#4A4A45' }}>
-              Every platform promises the world. But when your clinic needs real depth — telehealth, prescribing, AI charting, lab ordering, pharmacy routing — they all stop short. One by one.
-            </p>
-          </>
-        )}
+        {/* Phase content */}
+        {phase === 1 && <Phase1 name={name} />}
+        {phase === 2 && <Phase2 name={name} />}
+        {phase === 3 && <Phase3 />}
+        {phase === 4 && <Phase4 />}
 
         {/* Scroll indicator */}
         <button
