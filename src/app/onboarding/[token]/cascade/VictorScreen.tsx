@@ -1,0 +1,137 @@
+'use client'
+
+import { COLORS } from './data'
+
+export function VictorScreen() {
+  return (
+    <section
+      className="relative w-full flex flex-col items-center overflow-hidden"
+      style={{
+        background: COLORS.cream,
+        minHeight: '100vh',
+        padding: '60px 24px 40px',
+      }}
+    >
+      {/* Botanical decoration — top-right */}
+      <svg
+        className="absolute pointer-events-none"
+        style={{ top: 60, right: -40, width: 180, height: 180, opacity: 0.2 }}
+        viewBox="0 0 200 200"
+        fill="none"
+      >
+        <path
+          d="M200 20C200 20 180 130 50 160"
+          stroke={COLORS.gold}
+          strokeWidth="0.76"
+          strokeLinecap="round"
+        />
+        <path
+          d="M170 40C160 50 148 65 145 80M150 35L160 70"
+          stroke={COLORS.gold}
+          strokeWidth="0.76"
+          strokeLinecap="round"
+        />
+      </svg>
+
+      {/* Botanical decoration — bottom-left */}
+      <svg
+        className="absolute pointer-events-none"
+        style={{ bottom: 40, left: -40, width: 180, height: 180, opacity: 0.2 }}
+        viewBox="0 0 200 200"
+        fill="none"
+      >
+        <path
+          d="M0 180C0 180 20 70 150 40"
+          stroke={COLORS.gold}
+          strokeWidth="0.76"
+          strokeLinecap="round"
+        />
+      </svg>
+
+      {/* Swearby wordmark */}
+      <h2
+        className="font-serif relative z-10"
+        style={{
+          color: COLORS.green,
+          fontSize: 22,
+          fontWeight: 500,
+          fontStyle: 'italic',
+        }}
+      >
+        Swearby
+      </h2>
+
+      {/* Crown / trophy icon */}
+      <svg
+        className="relative z-10 mt-40"
+        width="40"
+        height="30"
+        viewBox="0 0 40 30"
+        fill="none"
+      >
+        <path
+          d="M30.16 13.28L20 0L9.84 13.28L4.16 9.7L2.28 11.04L5.1 25.4L6.33 26.42H33.66L34.89 25.4L37.72 11.04L35.84 9.7L30.16 13.28Z"
+          fill={COLORS.gold}
+        />
+      </svg>
+
+      {/* Vertical "Swearby Victor" wordmark — rotated writing-mode */}
+      <div
+        className="relative z-10 mt-6"
+        style={{
+          writingMode: 'vertical-rl',
+          textOrientation: 'mixed',
+          transform: 'rotate(180deg)',
+          fontFamily: 'serif',
+          fontStyle: 'italic',
+          fontSize: 18,
+          color: COLORS.green,
+          letterSpacing: '0.25em',
+        }}
+      >
+        Swearby Victor
+      </div>
+
+      {/* Gold-to-cream gradient line */}
+      <div
+        className="relative z-10 mt-8"
+        style={{
+          width: 2,
+          height: 74,
+          background: `linear-gradient(to bottom, ${COLORS.gold}, ${COLORS.cream})`,
+          opacity: 0.5,
+        }}
+      />
+
+      {/* Headline — "They're built to take your money." */}
+      <h1
+        className="relative z-10 mt-10 font-sans text-center"
+        style={{
+          fontSize: 'clamp(1.75rem, 7vw, 2.25rem)',
+          fontWeight: 700,
+          lineHeight: 1.18,
+          color: '#353331',
+          letterSpacing: '-0.01em',
+          maxWidth: 340,
+        }}
+      >
+        They&apos;re built to take your money.
+      </h1>
+
+      {/* Scroll-down hint — same mark as the rest of the flow */}
+      <div className="relative z-10 mt-auto pt-16 flex flex-col items-center gap-2">
+        <style>{`@keyframes slide-down { 0%,100% { transform:translateY(0) } 50% { transform:translateY(5px) } }`}</style>
+        <span className="tracking-[0.2em]" style={{ color: '#353331', fontSize: 11, opacity: 0.7 }}>
+          Scroll down
+        </span>
+        <svg width="30" height="44" viewBox="0 0 35 51" fill="none" aria-hidden="true" className="overflow-visible">
+          <path d="M31.3054 27.1045L29.9704 26.1646C34.3372 19.9626 33.607 11.5616 28.2343 6.18885C22.1584 0.112877 12.2723 0.112959 6.19647 6.18877C0.847267 11.538 0.100903 19.916 4.42186 26.1096L3.08293 27.0437C0.799676 23.7709 -0.274034 19.7664 0.0596787 15.7678C0.39731 11.7216 2.16677 7.90958 5.04211 5.03433C11.7546 -1.67814 22.6765 -1.67805 29.3889 5.03424C32.2733 7.91872 34.0438 11.7433 34.3741 15.8033C34.7007 19.8166 33.6109 23.8301 31.3054 27.1045Z" fill="rgba(53, 51, 49, 1)" />
+          <g style={{ animation: 'slide-down 1.2s ease-in-out infinite' }}>
+            <path d="M16.3604 14.5718H17.8183V49.0776H16.3604V14.5718Z" fill="rgba(53, 51, 49, 1)" />
+            <path d="M17.2151 50.0965L7.94727 40.8285L9.10179 39.6741L17.2151 47.7874L25.3286 39.6741L26.4831 40.8285L17.2151 50.0965Z" fill="rgba(53, 51, 49, 1)" />
+          </g>
+        </svg>
+      </div>
+    </section>
+  )
+}

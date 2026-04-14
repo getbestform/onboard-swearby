@@ -23,21 +23,24 @@ function initialFlowStep(
   initialDraft?: Record<string, unknown>,
   forceWelcome?: boolean,
 ): FlowStep {
-  if (!initiallyVerified) return 'verify'
   if (forceWelcome) return 'welcome'
+  if (!initiallyVerified) return 'verify'
   if (initialDraft?.welcomeDone === true) return 'wizard'
   return 'welcome'
 }
 
 export default function OnboardingForm({ token, ownerName, email, initiallyVerified, initialDraft }: OnboardingFormProps) {
   const searchParams = useSearchParams()
-  const forceWelcome = searchParams.get('phase') === 'welcome'
+  const phaseParam   = searchParams.get('phase')
+  const forceWelcome = phaseParam === 'welcome' || phaseParam === 'cascade'
+  const initialPhase = phaseParam === 'cascade' ? 4 : 1
   const [step, setStep] = useState<FlowStep>(initialFlowStep(initiallyVerified, initialDraft, forceWelcome))
 
   if (step === 'verify') return <VerifyStep token={token} ownerName={ownerName} email={email} onVerified={() => setStep('welcome')} />
   if (step === 'welcome') return (
     <WelcomeStep
       ownerName={ownerName}
+      initialPhase={initialPhase}
       onComplete={async () => {
         await saveDraft(token, { welcomeDone: true })
         setStep('wizard')

@@ -1,4 +1,5 @@
 import OnboardingForm from './OnboardingForm'
+import { COMPETITORS } from './cascade/data'
 
 const authHeaders = (apiKey: string) => ({ Authorization: `Bearer ${apiKey}` })
 
@@ -37,12 +38,20 @@ export default async function OnboardingPage({
   const { token } = await params
   const { ownerName, email, verified, initialDraft } = await fetchInviteAndDraft(token)
   return (
-    <OnboardingForm
-      token={token}
-      ownerName={ownerName}
-      email={email}
-      initiallyVerified={verified}
-      initialDraft={initialDraft}
-    />
+    <>
+      {/* Preload the competitor logos in the initial SSR HTML so the browser
+          starts fetching them on first byte — they're ready before the
+          FeatureCascade mounts. */}
+      {COMPETITORS.map(c => (
+        <link key={c.id} rel="preload" as="image" href={c.logo} />
+      ))}
+      <OnboardingForm
+        token={token}
+        ownerName={ownerName}
+        email={email}
+        initiallyVerified={verified}
+        initialDraft={initialDraft}
+      />
+    </>
   )
 }

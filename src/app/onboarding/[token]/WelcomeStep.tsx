@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { Phase1 } from './welcome/Phase1'
 import { Phase2 } from './welcome/Phase2'
 import { Phase3 } from './welcome/Phase3'
-import { Phase4 } from './welcome/Phase4'
-import Image from 'next/image'
+import { FeatureCascade } from './cascade/FeatureCascade'
 
 type AnimState = 'idle' | 'exit-up' | 'exit-down' | 'enter-from-below' | 'enter-from-above'
 
@@ -18,8 +18,8 @@ const BG: Record<number, string> = {
   4: '#FBF7F2',
 }
 
-export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?: string; onComplete: () => void }) {
-  const [phase, setPhase] = useState(1)
+export function WelcomeStep({ ownerName, onComplete: _onComplete, initialPhase = 1 }: { ownerName?: string; onComplete: () => void; initialPhase?: number }) {
+  const [phase, setPhase] = useState(initialPhase)
   const [anim, setAnim]   = useState<AnimState>('idle')
 
   const phaseRef  = useRef(phase)
@@ -30,6 +30,9 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
   useEffect(() => { animRef.current  = anim  }, [anim])
 
   const go = (direction: 'forward' | 'back') => {
+    // Once we've handed off to the scroll-driven cascade, native scroll owns
+    // navigation — don't let the wheel/key/touch listeners pop us back.
+    if (phaseRef.current >= TOTAL_PHASES) return
     if (triggered.current) return
     if (animRef.current !== 'idle') return
     if (direction === 'forward' && phaseRef.current === TOTAL_PHASES) return
@@ -105,6 +108,13 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
     }
   }, [phase, isDark])
 
+  // Once the user advances past the 3 discrete welcome phases, release the
+  // scroll-hijacking and hand off to the scroll-driven FeatureCascade. The
+  // first frame of the cascade matches what Phase 4 used to show.
+  if (phase >= 4) {
+    return <FeatureCascade ownerName={ownerName} />
+  }
+
   const mainStyle = (): React.CSSProperties => {
     const t = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out'
     switch (anim) {
@@ -145,7 +155,6 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
         {phase === 1 && <Phase1 name={name} />}
         {phase === 2 && <Phase2 name={name} />}
         {phase === 3 && <Phase3 />}
-        {phase === 4 && <Phase4 />}
 
         {/* Scroll indicator — absolute-centered on mobile, inline below content on desktop */}
         <button
