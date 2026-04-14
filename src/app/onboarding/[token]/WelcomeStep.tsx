@@ -5,6 +5,7 @@ import { Phase1 } from './welcome/Phase1'
 import { Phase2 } from './welcome/Phase2'
 import { Phase3 } from './welcome/Phase3'
 import { Phase4 } from './welcome/Phase4'
+import Image from 'next/image'
 
 type AnimState = 'idle' | 'exit-up' | 'exit-down' | 'enter-from-below' | 'enter-from-above'
 
@@ -127,14 +128,14 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
 
       {/* Main content */}
       <main
-        className={`relative z-10 flex-1 flex flex-col justify-center pb-12 md:pb-20 px-8 md:px-12 mx-auto max-w-[1024px] w-full pt-8`}
+        className={`relative z-10 flex-1 flex flex-col justify-center pb-[100px] md:pb-0 px-8 -mt-[84px] md:mt-0 md:px-5 mx-auto max-w-[1200px] w-full pt-8`}
         style={mainStyle()}
       >
         {/* Badge — phases 1–3 only */}
         {phase < 4 && (
-          <div className="flex items-center justify-center gap-2.5 mb-8">
-            <img src="/verified.svg" alt="" className="w-4 h-4" aria-hidden="true" />
-            <span className="text-[14px] font-semibold uppercase tracking-[5px]" style={{ color: '#BDA763' }}>
+          <div className="flex items-center justify-center md:justify-start gap-2.5 mb-4">
+            <Image src="/verified.svg" alt="" width={16} height={16} aria-hidden="true" />
+            <span className="text-sm font-plus-jakarta font-semibold uppercase tracking-[5px]" style={{ color: '#BDA763' }}>
               Access Verified
             </span>
           </div>
@@ -146,14 +147,14 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
         {phase === 3 && <Phase3 />}
         {phase === 4 && <Phase4 />}
 
-        {/* Scroll indicator */}
+        {/* Scroll indicator — absolute-centered on mobile, inline below content on desktop */}
         <button
           type="button"
           onClick={() => go('forward')}
-          className="absolute bottom-[30px] left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 group w-fit"
+          className="absolute bottom-[30px] left-1/2 -translate-x-1/2 md:relative md:bottom-auto md:left-auto md:translate-x-0 md:mt-8 md:mx-0 flex flex-col items-center md:items-center gap-2 group w-fit z-20"
         >
           <span
-            className="text-[12px] tracking-[0.2em] transition-colors"
+            className="text-[12px] font-plus-jakarta  transition-colors"
             style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(53, 51, 49, 1)' }}
           >
             Scroll down

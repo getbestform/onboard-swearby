@@ -32,7 +32,7 @@ export default function OnboardingTokenLayout({ children }: { children: React.Re
       <LeafTopLeft />
       <LeafBottomRight />
 
-      <header className="relative z-10 px-8 md:px-12 py-8 md:py-10 mx-auto max-w-[1024px] w-full flex justify-center md:justify-start">
+      <header className="relative z-10 px-8 md:px-5 py-8 md:py-10 mx-auto max-w-[1200px] w-full flex justify-center md:justify-start">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           id="onboarding-logo"
@@ -47,7 +47,7 @@ export default function OnboardingTokenLayout({ children }: { children: React.Re
         {children}
       </div>
 
-      <footer className="hidden md:block relative z-10 px-8 md:px-12 pb-8 md:pb-10 mx-auto max-w-[1024px] w-full">
+      <footer className="hidden md:block relative z-10 px-8 md:px-5 pb-8 md:pb-10 mx-auto max-w-[1200px] w-full">
         <p id="onboarding-footer-text" className="text-[#a9cfb6]/40 text-xs">
           &copy; 2026 SwearbyHealth&trade;. All rights reserved.
         </p>
