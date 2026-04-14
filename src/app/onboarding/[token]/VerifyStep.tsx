@@ -132,11 +132,11 @@ export function VerifyStep({ token, ownerName, email, onVerified }: { token: str
       <LeafTopLeft />
       <LeafBottomRight />
 
-      <header className="relative z-10 px-8 md:px-56 pt-8 md:pt-10  max-w-[1024px]">
+      <header className="relative z-10 px-8 md:px-12 pt-8 md:pt-10">
         <span className="text-white font-serif text-xl md:text-2xl font-bold tracking-wide">Swearby</span>
       </header>
 
-      <main className="relative z-10 flex-1 flex flex-col justify-center px-8 md:px-56 max-w-[1024px]">
+      <main className="relative z-10 flex-1 flex flex-col justify-center px-8 md:px-12 max-w-2xl">
         <div className="mb-16 md:mb-20">
           <p className="text-[#c4a35a] text-xs md:text-sm uppercase tracking-[0.35em] font-medium">
             Private Access
@@ -189,7 +189,7 @@ export function VerifyStep({ token, ownerName, email, onVerified }: { token: str
         </form>
       </main>
 
-      <footer className="relative z-10 px-8 md:px-56 pb-8 md:pb-10 max-w-[1024px]">
+      <footer className="relative z-10 px-8 md:px-12 pb-8 md:pb-10">
         <p className="text-[#a9cfb6]/40 text-xs">
           &copy; 2026 SwearbyHealth&trade;. All rights reserved.
         </p>
