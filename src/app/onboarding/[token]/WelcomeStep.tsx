@@ -100,7 +100,7 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
 
   return (
     <div
-      className="min-h-screen relative flex flex-col overflow-hidden transition-colors duration-700"
+      className="min-h-screen relative flex flex-col overflow-hidden transition-colors duration-700 [font-family:var(--font-plus-jakarta)]"
       style={{ background: BG[phase] }}
     >
       <style>{`
@@ -130,7 +130,7 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
 
       {/* Main content */}
       <main
-        className={`relative z-10 flex-1 flex flex-col justify-center pb-20 pt-12 ${phase === 4 ? 'px-6 md:px-10' : 'px-10 md:px-20 lg:px-28'}`}
+        className={`relative z-10 flex-1 flex flex-col justify-center pb-12 md:pb-20 pt-12 ${phase === 4 ? 'px-6 md:px-10' : 'px-10 md:px-20 lg:px-28'}`}
         style={mainStyle()}
       >
         {/* Badge — phases 1–3 only */}
@@ -155,15 +155,15 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
         <button
           type="button"
           onClick={() => go('forward')}
-          className="mt-8 flex flex-col items-center md:items-start gap-2 group w-fit mx-auto md:mx-0"
+          className="mt-16 flex flex-col items-center md:items-start gap-2 group w-fit mx-auto md:mx-0"
         >
           <span
-            className="text-[10px] tracking-[0.2em] transition-colors"
+            className="text-[12px] tracking-[0.2em] transition-colors"
             style={{ color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(53, 51, 49, 1)' }}
           >
             Scroll down
           </span>
-          <svg width="35" height="51" viewBox="0 0 35 51" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="group-hover:opacity-80 transition-opacity">
+          <svg width="35" height="51" viewBox="0 0 35 51" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="overflow-visible group-hover:opacity-80 transition-opacity">
             <path d="M31.3054 27.1045L29.9704 26.1646C34.3372 19.9626 33.607 11.5616 28.2343 6.18885C22.1584 0.112877 12.2723 0.112959 6.19647 6.18877C0.847267 11.538 0.100903 19.916 4.42186 26.1096L3.08293 27.0437C0.799676 23.7709 -0.274034 19.7664 0.0596787 15.7678C0.39731 11.7216 2.16677 7.90958 5.04211 5.03433C11.7546 -1.67814 22.6765 -1.67805 29.3889 5.03424C32.2733 7.91872 34.0438 11.7433 34.3741 15.8033C34.7007 19.8166 33.6109 23.8301 31.3054 27.1045Z" fill={isDark ? 'white' : 'rgba(53, 51, 49, 1)'}/>
             <g style={{ animation: 'slide-down 1.2s ease-in-out infinite' }}>
               <path d="M16.3604 14.5718H17.8183V49.0776H16.3604V14.5718Z" fill={isDark ? 'white' : 'rgba(53, 51, 49, 1)'}/>
@@ -173,15 +173,6 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete }: { ownerName?
         </button>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 px-10 pb-8">
-        <p
-          className="text-[10px] tracking-wide transition-colors duration-700"
-          style={{ color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(38,60,48,0.35)' }}
-        >
-          © 2026 SwearbyHealth™. All rights reserved.
-        </p>
-      </footer>
     </div>
   )
 }

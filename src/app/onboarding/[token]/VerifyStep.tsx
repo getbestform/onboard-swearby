@@ -31,7 +31,7 @@ export function VerifyStep({ token, ownerName, email, onVerified }: { token: str
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center overflow-hidden relative"
+    <div className="min-h-screen flex flex-col items-center justify-center overflow-hidden relative [font-family:var(--font-plus-jakarta)]"
       style={{ background: 'linear-gradient(145deg, #022616 0%, #1a3c2a 100%)' }}>
       <div className="fixed inset-0 pointer-events-none opacity-20">
         <div className="absolute inset-0" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/natural-paper.png')" }} />
