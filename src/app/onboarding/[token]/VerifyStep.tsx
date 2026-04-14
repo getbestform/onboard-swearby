@@ -123,7 +123,7 @@ export function VerifyStep({ token, ownerName, email, onVerified }: { token: str
             </div>
           </div>
 
-          <p className="text-sm mb-8">
+          <p className="text-sm mb-8 font-plus-jakarta">
             {error ? (
               <>
                 <span className="text-red-400/90">Wrong access code! </span>
