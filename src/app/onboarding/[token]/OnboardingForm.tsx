@@ -25,8 +25,8 @@ function initialFlowStep(
 ): FlowStep {
   if (!initiallyVerified) return 'verify'
   if (forceWelcome) return 'welcome'
-  if (initialDraft?.welcomeDone === true) return 'wizard'
-  return 'welcome'
+  //if (initialDraft?.welcomeDone === true) return 'wizard'
+  return 'wizard'
 }
 
 export default function OnboardingForm({ token, ownerName, email, initiallyVerified, initialDraft }: OnboardingFormProps) {
