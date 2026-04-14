@@ -45,7 +45,7 @@ function StripeCardForm({
         return
       }
       if (paymentIntent?.status === 'succeeded') {
-        const details = await retrievePaymentDetails(paymentIntent.id)
+        const details = await retrievePaymentDetails(token, paymentIntent.id, cardholderName)
         if ('error' in details) console.error('[retrievePaymentDetails]', details.error)
         const patch: Partial<DraftData> = {
           paymentIntentId: paymentIntent.id,
