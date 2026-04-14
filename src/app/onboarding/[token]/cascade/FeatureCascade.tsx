@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react'
 import { motion, useScroll, useTransform, useMotionTemplate, type MotionValue } from 'motion/react'
 import { COMPETITORS, FEATURES, CORONATION_FEATURE_INDEX, COLORS, type Competitor } from './data'
-import { StickyNav } from './StickyNav'
 import { VictorScreen } from './VictorScreen'
 import { BookACallScreen } from './BookACallScreen'
 
@@ -102,8 +101,11 @@ function useFeatureBarY(i: number, scrollYProgress: MotionValue<number>) {
 const GLUE_OFFSET_PX = 80
 function useLogoTransform(competitor: Competitor, scrollYProgress: MotionValue<number>): MotionValue<string> {
   const d = competitor.deathFeatureIndex
-  const deathMid = d != null ? featureMeridian(d) : 0
-  const attachStart = deathMid - halfSpan * 0.2
+  // For non-dying competitors (Swearby), use a valid monotonic range with
+  // constant outputs — the actual values are ignored but the range must be
+  // strictly increasing to satisfy motion's WAAPI offset validation.
+  const deathMid    = d != null ? featureMeridian(d)        : 0.5
+  const attachStart = d != null ? deathMid - halfSpan * 0.2 : 0
   const yVh = useTransform(
     scrollYProgress,
     [attachStart, deathMid, deathMid + halfSpan],
@@ -131,14 +133,22 @@ function useLogoOpacity(competitor: Competitor, scrollYProgress: MotionValue<num
   )
 }
 
-// --- Line opacity per logo (fade out when logo dies) ----------------------
+// --- Line opacity per logo (fast fade at glue, stays 0 after) ----------
+//
+// The moment the kill bar glues to the logo (attachStart), the line drops
+// out quickly — it finishes fading by the bar's meridian crossing. After
+// that it stays at 0 forever. Surviving lines stay at opacity 1.
 function useLineOpacity(competitor: Competitor, scrollYProgress: MotionValue<number>) {
   const d = competitor.deathFeatureIndex
-  const deathMid = d != null ? featureMeridian(d) : 0
+  // For non-dying competitors (Swearby), use a valid monotonic range —
+  // outputs are constant 1, so the specific stops don't matter, but motion
+  // requires the input array to be strictly increasing.
+  const deathMid    = d != null ? featureMeridian(d)        : 0.5
+  const attachStart = d != null ? deathMid - halfSpan * 0.2 : 0
   return useTransform(
     scrollYProgress,
-    [deathMid, deathMid + halfSpan * 0.5],
-    d != null ? [1, 0] : [1, 1],
+    [attachStart, deathMid, 1],
+    d != null ? [1, 0, 0] : [1, 1, 1],
     { clamp: true },
   )
 }
@@ -302,21 +312,31 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
   // phases 1–3 but it kills `position: sticky` inside the cascade. Flip the
   // overflow to `visible` on mount and restore on unmount so the sticky box
   // can pin and the tall cascade section can scroll with the page.
+  //
+  // The layout also renders a brand <header> above the cascade; while it's
+  // in normal flow the sticky section only pins after the header scrolls out
+  // of view, so the page moves "normally" for ~70 px before the animation
+  // starts. Hide the layout header (and desktop footer) for the duration so
+  // the cascade starts flush with the viewport top.
   useEffect(() => {
-    const overrides: Array<{ el: HTMLElement; prev: string }> = []
+    type Prop = 'overflow' | 'display'
+    const overrides: Array<{ el: HTMLElement; prop: Prop; prev: string }> = []
+    const pushOverride = (el: HTMLElement, prop: Prop, value: string) => {
+      overrides.push({ el, prop, prev: el.style[prop] })
+      el.style[prop] = value
+    }
     const root = document.getElementById('onboarding-root')
     if (root) {
-      overrides.push({ el: root, prev: root.style.overflow })
-      root.style.overflow = 'visible'
-      // The layout has a direct child wrapper that also sets overflow-hidden.
-      // Target every such descendant inside #onboarding-root.
+      pushOverride(root, 'overflow', 'visible')
       root.querySelectorAll<HTMLElement>('.overflow-hidden').forEach(el => {
-        overrides.push({ el, prev: el.style.overflow })
-        el.style.overflow = 'visible'
+        pushOverride(el, 'overflow', 'visible')
+      })
+      root.querySelectorAll<HTMLElement>(':scope > header, :scope > footer').forEach(el => {
+        pushOverride(el, 'display', 'none')
       })
     }
     return () => {
-      for (const { el, prev } of overrides) el.style.overflow = prev
+      for (const { el, prop, prev } of overrides) el.style[prop] = prev
     }
   }, [])
 
@@ -339,8 +359,6 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
           <div className="absolute pointer-events-none select-none bottom-[65px] right-[-15px] w-[200px] h-[175px] z-0">
             <img src="/wlc-leaf-down.svg" alt="" className="w-full h-full" />
           </div>
-
-          <StickyNav guestName={guestName} />
 
           {/* Headline — sits near the top of the viewport. Absolute so it
               doesn't shift the meridian; the meridian is pinned to the
