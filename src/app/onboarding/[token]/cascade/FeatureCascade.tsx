@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { motion, useScroll, useTransform, useMotionTemplate, type MotionValue } from 'motion/react'
 import { COMPETITORS, FEATURES, CORONATION_FEATURE_INDEX, COLORS, type Competitor } from './data'
 import { StickyNav } from './StickyNav'
@@ -297,6 +297,29 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
   const swearbyGoldOpacity = useSwearbyLineGoldOpacity(scrollYProgress)
   const guestName = ownerName ?? 'your partner'
 
+  // The onboarding layout wraps children in two `overflow-hidden` ancestors
+  // (#onboarding-root and its inner wrapper) — that's fine for the vertical
+  // phases 1–3 but it kills `position: sticky` inside the cascade. Flip the
+  // overflow to `visible` on mount and restore on unmount so the sticky box
+  // can pin and the tall cascade section can scroll with the page.
+  useEffect(() => {
+    const overrides: Array<{ el: HTMLElement; prev: string }> = []
+    const root = document.getElementById('onboarding-root')
+    if (root) {
+      overrides.push({ el: root, prev: root.style.overflow })
+      root.style.overflow = 'visible'
+      // The layout has a direct child wrapper that also sets overflow-hidden.
+      // Target every such descendant inside #onboarding-root.
+      root.querySelectorAll<HTMLElement>('.overflow-hidden').forEach(el => {
+        overrides.push({ el, prev: el.style.overflow })
+        el.style.overflow = 'visible'
+      })
+    }
+    return () => {
+      for (const { el, prev } of overrides) el.style.overflow = prev
+    }
+  }, [])
+
   return (
     <div className="[font-family:var(--font-plus-jakarta)]" style={{ background: COLORS.cream }}>
       {/* Sticky cascade section */}
@@ -366,23 +389,9 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
             ))}
           </div>
 
-          {/* Layer 2 (middle) — feature bars. Bars pass behind the logos. */}
-          <div className="absolute inset-0 z-10 pointer-events-none">
-            {FEATURES.map((f, i) => (
-              <FeatureBar
-                key={f.id}
-                index={i}
-                feature={f}
-                scrollYProgress={scrollYProgress}
-              />
-            ))}
-          </div>
-
-          {/* Layer 3 (top) — logos. Rendered above the bars so the logos stay
-              visible while the bars cross through the meridian. Uses the same
-              symmetric insets as the lines so each column lines up. */}
+          {/* Layer 2 (middle) — logos. Sit between lines and bars. */}
           <div
-            className="absolute inset-x-0 z-20 flex pointer-events-none"
+            className="absolute inset-x-0 z-10 flex pointer-events-none"
             style={{
               top:    'clamp(120px, 18vh, 200px)',
               bottom: 'clamp(120px, 18vh, 200px)',
@@ -392,6 +401,20 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
               <LogoCell
                 key={c.id}
                 competitor={c}
+                scrollYProgress={scrollYProgress}
+              />
+            ))}
+          </div>
+
+          {/* Layer 3 (top) — feature bars. Pills cross IN FRONT of the logo
+              column so the solid white pill reads clearly as it passes
+              through (matches the Figma). */}
+          <div className="absolute inset-0 z-20 pointer-events-none">
+            {FEATURES.map((f, i) => (
+              <FeatureBar
+                key={f.id}
+                index={i}
+                feature={f}
                 scrollYProgress={scrollYProgress}
               />
             ))}
