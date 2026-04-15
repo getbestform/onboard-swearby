@@ -1,10 +1,39 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { motion, useScroll, useTransform, useMotionTemplate, type MotionValue } from 'motion/react'
 import { COMPETITORS, FEATURES, CORONATION_FEATURE_INDEX, COLORS, type Competitor } from './data'
 import { VictorScreen } from './VictorScreen'
 import { BookACallScreen } from './BookACallScreen'
+
+// useLayoutEffect warns on the server; swap to useEffect during SSR so the
+// override still applies synchronously on the client without a hydration warning.
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
+// Motion's `useTransform(value, inputArray, outputArray, { clamp: true })` opts
+// the value into WAAPI-accelerated scroll-driven animation. That path doesn't
+// clamp correctly for multi-stop keyframes — values past the last input leak
+// non-zero outputs, which shows up as ghost opacity on bars that should be
+// fully gone. Passing a *function* transformer forces the JS interpolation
+// path, which clamps properly. This helper builds a clamped piecewise-linear
+// transformer from parallel input/output arrays.
+function piecewise(inputs: number[], outputs: number[]): (v: number) => number {
+  return v => {
+    if (v <= inputs[0]) return outputs[0]
+    const last = inputs.length - 1
+    if (v >= inputs[last]) return outputs[last]
+    for (let i = 0; i < last; i++) {
+      const a = inputs[i]
+      const b = inputs[i + 1]
+      if (v <= b) {
+        if (b === a) return outputs[i + 1]
+        const t = (v - a) / (b - a)
+        return outputs[i] + t * (outputs[i + 1] - outputs[i])
+      }
+    }
+    return outputs[last]
+  }
+}
 
 // --- Scroll pacing --------------------------------------------------------
 //
@@ -19,13 +48,13 @@ import { BookACallScreen } from './BookACallScreen'
 //
 // Tune these to taste.
 const N = FEATURES.length
-const SLOT_VH    = 55          // scroll cost per feature
-const OUTRO_VH   = 60          // scroll cost of outro dwell
-const TOTAL_VH   = N * SLOT_VH + OUTRO_VH
+const SLOT_VH = 55          // scroll cost per feature
+const OUTRO_VH = 60          // scroll cost of outro dwell
+const TOTAL_VH = N * SLOT_VH + OUTRO_VH
 
-const outroStart  = (N * SLOT_VH) / TOTAL_VH
-const slot        = SLOT_VH / TOTAL_VH
-const halfSpan    = slot / 2
+const outroStart = (N * SLOT_VH) / TOTAL_VH
+const slot = SLOT_VH / TOTAL_VH
+const halfSpan = slot / 2
 
 // Feature i is at meridian (y = 0) at this scroll progress.
 function featureMeridian(i: number): number {
@@ -51,17 +80,19 @@ const FIRST_FRAME_Y_VH = 15
 function useFeatureBarOpacity(i: number, scrollYProgress: MotionValue<number>) {
   const mid = featureMeridian(i)
   const slotLen = 2 * halfSpan
-  const inOnly   = i === 0
-  const enterA   = inOnly ? 0 : mid - halfSpan                   // 0 %
-  const enterB   = inOnly ? 0 : mid - halfSpan + 0.2 * slotLen   // 20 %
-  const exitA    = mid - halfSpan + 0.6 * slotLen                // 60 %
-  const exitB    = mid + halfSpan                                // 100 %
-  return useTransform(
-    scrollYProgress,
-    [enterA, enterB, exitA, exitB],
-    [inOnly ? 1 : 0, 1, 1, 0],
-    { clamp: true },
-  )
+  const inOnly = i === 0
+  // Feature 0 is already visible at scroll 0, so it skips the fade-in and
+  // uses a 3-point curve [0 → exitA → exitB] with outputs [1, 1, 0].
+  const inputs = inOnly
+    ? [0, mid - halfSpan + 0.6 * slotLen, mid + halfSpan]
+    : [
+        mid - halfSpan,                       // 0 %
+        mid - halfSpan + 0.2 * slotLen,       // 20 %
+        mid - halfSpan + 0.6 * slotLen,       // 60 %
+        mid + halfSpan,                       // 100 %
+      ]
+  const outputs = inOnly ? [1, 1, 0] : [0, 1, 1, 0]
+  return useTransform(scrollYProgress, piecewise(inputs, outputs))
 }
 
 // --- Bar Y motion ---------------------------------------------------------
@@ -70,16 +101,16 @@ function useFeatureBarOpacity(i: number, scrollYProgress: MotionValue<number>) {
 // (-50vh) across its slot. Feature 0 is pre-positioned at FIRST_FRAME_Y_VH at
 // scroll = 0 so the cascade opens with the Online Booking pill already visible
 // just below the logos (matching the static Phase 4 mockup).
-function useFeatureBarY(i: number, scrollYProgress: MotionValue<number>) {
+//
+// Returns a scalar MotionValue<number> in vh units (not a string). The caller
+// composes the final transform with useMotionTemplate so that `vh` resolves
+// correctly in the CSS — motion's `y` shorthand interprets numbers as px and
+// mishandles vh strings when interpolated.
+function useFeatureBarY(i: number, scrollYProgress: MotionValue<number>): MotionValue<number> {
   const mid = featureMeridian(i)
-  const enterScroll = i === 0 ? 0                : mid - halfSpan
-  const enterY      = i === 0 ? `${FIRST_FRAME_Y_VH}vh` : '50vh'
-  return useTransform(
-    scrollYProgress,
-    [enterScroll, mid, mid + halfSpan],
-    [enterY, '0vh', '-50vh'],
-    { clamp: true },
-  )
+  const enterScroll = i === 0 ? 0 : mid - halfSpan
+  const enterY = i === 0 ? FIRST_FRAME_Y_VH : 50
+  return useTransform(scrollYProgress, piecewise([enterScroll, mid, mid + halfSpan], [enterY, 0, -50]))
 }
 
 // --- Dying logo transform -------------------------------------------------
@@ -101,22 +132,18 @@ function useFeatureBarY(i: number, scrollYProgress: MotionValue<number>) {
 const GLUE_OFFSET_PX = 80
 function useLogoTransform(competitor: Competitor, scrollYProgress: MotionValue<number>): MotionValue<string> {
   const d = competitor.deathFeatureIndex
-  // For non-dying competitors (Swearby), use a valid monotonic range with
-  // constant outputs — the actual values are ignored but the range must be
-  // strictly increasing to satisfy motion's WAAPI offset validation.
-  const deathMid    = d != null ? featureMeridian(d)        : 0.5
+  const deathMid = d != null ? featureMeridian(d) : 0.5
   const attachStart = d != null ? deathMid - halfSpan * 0.2 : 0
   const yVh = useTransform(
     scrollYProgress,
-    [attachStart, deathMid, deathMid + halfSpan],
-    d != null ? [0, 0, -50] : [0, 0, 0],
-    { clamp: true },
+    piecewise(
+      [attachStart, deathMid, deathMid + halfSpan],
+      d != null ? [0, 0, -50] : [0, 0, 0],
+    ),
   )
   const yPx = useTransform(
     scrollYProgress,
-    [attachStart, deathMid],
-    d != null ? [0, -GLUE_OFFSET_PX] : [0, 0],
-    { clamp: true },
+    piecewise([attachStart, deathMid], d != null ? [0, -GLUE_OFFSET_PX] : [0, 0]),
   )
   return useMotionTemplate`translate(-50%, calc(-50% + ${yVh}vh + ${yPx}px))`
 }
@@ -127,9 +154,10 @@ function useLogoOpacity(competitor: Competitor, scrollYProgress: MotionValue<num
   const deathMid = d != null ? featureMeridian(d) : 0
   return useTransform(
     scrollYProgress,
-    [deathMid, deathMid + halfSpan * 0.6, deathMid + halfSpan],
-    d != null ? [1, 1, 0] : [1, 1, 1],
-    { clamp: true },
+    piecewise(
+      [deathMid, deathMid + halfSpan * 0.6, deathMid + halfSpan],
+      d != null ? [1, 1, 0] : [1, 1, 1],
+    ),
   )
 }
 
@@ -140,16 +168,11 @@ function useLogoOpacity(competitor: Competitor, scrollYProgress: MotionValue<num
 // that it stays at 0 forever. Surviving lines stay at opacity 1.
 function useLineOpacity(competitor: Competitor, scrollYProgress: MotionValue<number>) {
   const d = competitor.deathFeatureIndex
-  // For non-dying competitors (Swearby), use a valid monotonic range —
-  // outputs are constant 1, so the specific stops don't matter, but motion
-  // requires the input array to be strictly increasing.
-  const deathMid    = d != null ? featureMeridian(d)        : 0.5
+  const deathMid = d != null ? featureMeridian(d) : 0.5
   const attachStart = d != null ? deathMid - halfSpan * 0.2 : 0
   return useTransform(
     scrollYProgress,
-    [attachStart, deathMid, 1],
-    d != null ? [1, 0, 0] : [1, 1, 1],
-    { clamp: true },
+    piecewise([attachStart, deathMid, 1], d != null ? [1, 0, 0] : [1, 1, 1]),
   )
 }
 
@@ -159,7 +182,7 @@ function useLineOpacity(competitor: Competitor, scrollYProgress: MotionValue<num
 // green to gold across 0.5 of a slot.
 function useSwearbyLineGoldOpacity(scrollYProgress: MotionValue<number>) {
   const start = featureMeridian(CORONATION_FEATURE_INDEX)
-  return useTransform(scrollYProgress, [start, start + halfSpan], [0, 1], { clamp: true })
+  return useTransform(scrollYProgress, piecewise([start, start + halfSpan], [0, 1]))
 }
 
 // ==========================================================================
@@ -175,25 +198,23 @@ function FeatureBar({
   feature: typeof FEATURES[number]
   scrollYProgress: MotionValue<number>
 }) {
-  const y       = useFeatureBarY(index, scrollYProgress)
+  const yVh = useFeatureBarY(index, scrollYProgress)
   const opacity = useFeatureBarOpacity(index, scrollYProgress)
-  // The outer motion.div is anchored at `top: 50%` and translated up by the
-  // scroll-driven y (no -50% on this element). The inner plain div handles
-  // the self-center with `translateY(-50%)` — this keeps motion's transform
-  // pipeline and the static CSS transform on separate elements so they can't
-  // clobber each other.
+  // Compose the full transform explicitly with useMotionTemplate so `vh`
+  // units render correctly. The outer div sits at top:50%, then we shift up
+  // by 50% of its own height (self-center) plus the scroll-driven yVh.
+  const transform = useMotionTemplate`translateY(calc(-50% + ${yVh}vh))`
   return (
     <motion.div
       className="absolute inset-x-0 px-6 pointer-events-none"
-      style={{ top: '50%', y, opacity }}
+      style={{ top: '50%', transform, opacity }}
     >
       <div
-        className="w-full rounded-full border-[2px] text-[10px] font-semibold uppercase py-[14px] text-center bg-white"
+        className="w-full rounded-full border-2 text-[10px] font-semibold uppercase py-[14px] text-center bg-white"
         style={{
           borderColor: COLORS.gold,
           color: COLORS.gold,
           letterSpacing: '5px',
-          transform: 'translateY(-50%)',
         }}
       >
         {feature.label}
@@ -230,7 +251,7 @@ function LineColumn({
             bottom: `calc(50% + ${LOGO_HALF_GAP}px)`,
             background: COLORS.gold,
             WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
-            maskImage:       'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
           }}
         />
         {/* Below-logo: dotted gold, faded at the bottom (viewport-edge side) */}
@@ -243,7 +264,7 @@ function LineColumn({
             backgroundSize: '1.5px 6px',
             backgroundRepeat: 'repeat-y',
             WebkitMaskImage: 'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
-            maskImage:       'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
+            maskImage: 'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
           }}
         />
         {/* Swearby gold overlay — fully opaque gold after coronation */}
@@ -256,7 +277,7 @@ function LineColumn({
               opacity: swearbyGoldOpacity,
               background: COLORS.gold,
               WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
-              maskImage:       'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
+              maskImage: 'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
             }}
           />
         )}
@@ -273,7 +294,7 @@ function LogoCell({
   scrollYProgress: MotionValue<number>
 }) {
   const logoTransform = useLogoTransform(competitor, scrollYProgress)
-  const logoOpacity   = useLogoOpacity(competitor, scrollYProgress)
+  const logoOpacity = useLogoOpacity(competitor, scrollYProgress)
   return (
     <div className="flex-1 relative h-full">
       <motion.div
@@ -307,36 +328,59 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
   const swearbyGoldOpacity = useSwearbyLineGoldOpacity(scrollYProgress)
   const guestName = ownerName ?? 'your partner'
 
-  // The onboarding layout wraps children in two `overflow-hidden` ancestors
-  // (#onboarding-root and its inner wrapper) — that's fine for the vertical
-  // phases 1–3 but it kills `position: sticky` inside the cascade. Flip the
-  // overflow to `visible` on mount and restore on unmount so the sticky box
-  // can pin and the tall cascade section can scroll with the page.
+  // `position: sticky` dies inside any ancestor with `overflow: hidden`,
+  // `overflow: clip`, `overflow: auto`, or `overflow: scroll`. The onboarding
+  // layout has at least two `overflow-hidden` ancestors, so we walk every
+  // ancestor of the cascade section and force overflow/overflow-x/overflow-y
+  // to `visible` (with !important so Tailwind utility classes can't beat us).
   //
-  // The layout also renders a brand <header> above the cascade; while it's
-  // in normal flow the sticky section only pins after the header scrolls out
-  // of view, so the page moves "normally" for ~70 px before the animation
-  // starts. Hide the layout header (and desktop footer) for the duration so
-  // the cascade starts flush with the viewport top.
-  useEffect(() => {
-    type Prop = 'overflow' | 'display'
-    const overrides: Array<{ el: HTMLElement; prop: Prop; prev: string }> = []
-    const pushOverride = (el: HTMLElement, prop: Prop, value: string) => {
-      overrides.push({ el, prop, prev: el.style[prop] })
-      el.style[prop] = value
+  // We also hide the layout header/footer so the sticky section starts flush
+  // with the viewport top — otherwise the page scrolls "normally" for ~70 px
+  // before the animation begins.
+  //
+  // Restored on unmount.
+  useIsoLayoutEffect(() => {
+    const overrides: Array<{ el: HTMLElement; prop: string; prev: string; prevPriority: string }> = []
+    const pushOverride = (el: HTMLElement, prop: string, value: string) => {
+      overrides.push({
+        el,
+        prop,
+        prev: el.style.getPropertyValue(prop),
+        prevPriority: el.style.getPropertyPriority(prop),
+      })
+      el.style.setProperty(prop, value, 'important')
     }
+
+    const node = sectionRef.current
+    if (node) {
+      // Walk up from the cascade <section> to <html>, fixing any clipping
+      // ancestor. Overflow on the sticky element itself is fine (we keep its
+      // `overflow-hidden` to clip feature bars that translate past -50vh) —
+      // so start from the section's parent, not the sticky div.
+      let cur: HTMLElement | null = node.parentElement
+      while (cur) {
+        const cs = getComputedStyle(cur)
+        for (const prop of ['overflow-x', 'overflow-y'] as const) {
+          const v = cs.getPropertyValue(prop)
+          if (v && v !== 'visible') pushOverride(cur, prop, 'visible')
+        }
+        if (cur === document.documentElement) break
+        cur = cur.parentElement
+      }
+    }
+
     const root = document.getElementById('onboarding-root')
     if (root) {
-      pushOverride(root, 'overflow', 'visible')
-      root.querySelectorAll<HTMLElement>('.overflow-hidden').forEach(el => {
-        pushOverride(el, 'overflow', 'visible')
-      })
       root.querySelectorAll<HTMLElement>(':scope > header, :scope > footer').forEach(el => {
         pushOverride(el, 'display', 'none')
       })
     }
+
     return () => {
-      for (const { el, prop, prev } of overrides) el.style[prop] = prev
+      for (const { el, prop, prev, prevPriority } of overrides) {
+        if (prev) el.style.setProperty(prop, prev, prevPriority)
+        else el.style.removeProperty(prop)
+      }
     }
   }, [])
 
@@ -393,7 +437,7 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
           <div
             className="absolute inset-x-0 z-0 flex"
             style={{
-              top:    'clamp(120px, 18vh, 200px)',
+              top: 'clamp(120px, 18vh, 200px)',
               bottom: 'clamp(120px, 18vh, 200px)',
             }}
           >
@@ -411,7 +455,7 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
           <div
             className="absolute inset-x-0 z-10 flex pointer-events-none"
             style={{
-              top:    'clamp(120px, 18vh, 200px)',
+              top: 'clamp(120px, 18vh, 200px)',
               bottom: 'clamp(120px, 18vh, 200px)',
             }}
           >
