@@ -39,140 +39,234 @@ function piecewise(inputs: number[], outputs: number[]): (v: number) => number {
 //
 // The cascade scrolls past a sticky viewport. Progress 0→1 maps to the full
 // height of the sticky section. We carve it into three zones:
-//   [0, introEnd)        : intro dwell — first feature sits just below the
-//                          logo meridian (matches the static Phase 4 frame)
+//
+//   [0, introEnd)        : intro — split into two sequential sub-phases so
+//                          they don't visually compete:
+//                            • [0, headlineFadeEnd]        headline fades
+//                            • [headlineFadeEnd, introEnd] lines reveal
+//                          Feature 0 stays parked at STICK_Y_VH the whole time.
 //   [introEnd, outroStart): main cascade — each feature gets one slot of
-//                          scroll distance and travels from below the meridian
-//                          through the meridian and off the top.
+//                          scroll distance and enters/dwells/exits.
 //   [outroStart, 1]      : outro dwell — Swearby alone with a gold line.
 //
 // Tune these to taste.
 const N = FEATURES.length
+const INTRO_VH = 45          // total intro budget (headline fade + line reveal)
+const INTRO_HEADLINE_FRAC = 0.55   // first 55 % = headline fade, rest = line reveal
 const SLOT_VH = 55          // scroll cost per feature
 const OUTRO_VH = 60          // scroll cost of outro dwell
-const TOTAL_VH = N * SLOT_VH + OUTRO_VH
+const TOTAL_VH = INTRO_VH + N * SLOT_VH + OUTRO_VH
 
-const outroStart = (N * SLOT_VH) / TOTAL_VH
+const introEnd = INTRO_VH / TOTAL_VH
+const headlineFadeEnd = introEnd * INTRO_HEADLINE_FRAC
+const outroStart = (INTRO_VH + N * SLOT_VH) / TOTAL_VH
 const slot = SLOT_VH / TOTAL_VH
 const halfSpan = slot / 2
 
-// Feature i is at meridian (y = 0) at this scroll progress.
+// Feature i is at the **centre of its slot** at this scroll progress. With
+// the new stick-below-logos model the pill is NOT actually at y=0 here — it's
+// dwelling at STICK_Y_VH. See useFeatureBarY / pillCrossLogos below.
 function featureMeridian(i: number): number {
-  return (i + 0.5) * slot
+  return introEnd + (i + 0.5) * slot
 }
 
-// First-frame position of feature 0: just below the logo row, matching the
-// static Phase 4 mockup. In vh units from meridian.
-const FIRST_FRAME_Y_VH = 15
+// --- Headline opacity -----------------------------------------------------
+//
+// The Phase-4-style "Your software is holding you back." headline is visible
+// at scroll 0 (matching the static mockup). It fades out during the FIRST
+// sub-phase of the intro — before the line reveal starts — so the two
+// transitions don't overlap.
+function useHeadlineOpacity(scrollYProgress: MotionValue<number>) {
+  return useTransform(scrollYProgress, piecewise([0, headlineFadeEnd], [1, 0]))
+}
+
+// --- Intro line reveal ----------------------------------------------------
+//
+// Phase 4 (scroll = 0) shows ONLY the logos with solid gold lines trailing
+// *below* them — there's nothing above. After the headline is gone, three
+// things happen together to prep the stage for the cascade:
+//
+//   1. The above-logo lines draw in from the logo edge upward (scaleY 0→1,
+//      anchored at the bottom of the line element).
+//   2. The below-logo SOLID lines fade out.
+//   3. The below-logo DOTTED overlay fades in.
+//
+// This runs in the SECOND sub-phase of the intro [headlineFadeEnd, introEnd]
+// so it doesn't overlap the headline fade.
+function useAboveLineScaleY(scrollYProgress: MotionValue<number>) {
+  return useTransform(scrollYProgress, piecewise([headlineFadeEnd, introEnd], [0, 1]))
+}
+function useBelowLineSolidOpacity(scrollYProgress: MotionValue<number>) {
+  return useTransform(scrollYProgress, piecewise([headlineFadeEnd, introEnd], [1, 0]))
+}
+function useBelowLineDottedOpacity(scrollYProgress: MotionValue<number>) {
+  return useTransform(scrollYProgress, piecewise([headlineFadeEnd, introEnd], [0, 1]))
+}
+
+// --- Stick position -------------------------------------------------------
+//
+// Every feature pill has the SAME resting spot: STICK_Y_VH below the meridian
+// (i.e., just below the logo row). This matches the static Phase 4 mockup
+// where "Online Booking" sits below the logos with breathing room. Pills
+// enter from far below, rise to STICK_Y_VH, dwell there, then exit upward
+// through the logos and off the top.
+const STICK_Y_VH = 15
+
+// --- Bar timing within a slot --------------------------------------------
+//
+// Every slot carves its scroll budget into three phases so each feature has
+// time to read, not just flash past:
+//
+//   [ 0 %, DWELL_START ]  : enter — bar slides from +50vh up to meridian
+//   [ DWELL_START, DWELL_END ]  : dwell — bar sits at meridian
+//   [ DWELL_END, 100 % ]  : exit  — bar slides from meridian up to −50vh
+//
+// The opacity curve wraps those: fade-in finishes just before the dwell, and
+// fade-out starts exactly as the dwell ends. That way the bar lingers at
+// full opacity the whole time it's parked over the logos.
+const DWELL_START = 0.25
+const DWELL_END = 0.75
+const FADE_IN_END = 0.20    // opacity reaches 1 just before the dwell starts
 
 // --- Bar opacity ----------------------------------------------------------
 //
-// Opacity curve across the slot (0 % = enter, 100 % = exit):
-//   0 %  : 0     (invisible, just about to enter from below)
-//   20 % : 1     (fast reveal — quick fade-in as it clears the bottom edge)
-//   60 % : 1     (stays fully visible while it crosses the meridian)
-//   100 %: 0     (longer, gentler fade-out as it drifts off the top)
-// The fade-out runs for 40 % of the slot so the bar isn't parked full-opacity
-// near the top of the viewport.
-//
-// Feature 0 is already visible at scroll = 0 (first-frame state), so it only
-// gets the exit half of the curve.
+// Feature 0 is already visible at scroll 0 (matches the static Phase 4 mockup)
+// so it skips the fade-in and only fades on exit.
 function useFeatureBarOpacity(i: number, scrollYProgress: MotionValue<number>) {
   const mid = featureMeridian(i)
   const slotLen = 2 * halfSpan
+  const slotStart = mid - halfSpan
   const inOnly = i === 0
-  // Feature 0 is already visible at scroll 0, so it skips the fade-in and
-  // uses a 3-point curve [0 → exitA → exitB] with outputs [1, 1, 0].
   const inputs = inOnly
-    ? [0, mid - halfSpan + 0.6 * slotLen, mid + halfSpan]
+    ? [0, slotStart + DWELL_END * slotLen, slotStart + slotLen]
     : [
-        mid - halfSpan,                       // 0 %
-        mid - halfSpan + 0.2 * slotLen,       // 20 %
-        mid - halfSpan + 0.6 * slotLen,       // 60 %
-        mid + halfSpan,                       // 100 %
-      ]
+      slotStart,
+      slotStart + FADE_IN_END * slotLen,
+      slotStart + DWELL_END * slotLen,
+      slotStart + slotLen,
+    ]
   const outputs = inOnly ? [1, 1, 0] : [0, 1, 1, 0]
   return useTransform(scrollYProgress, piecewise(inputs, outputs))
 }
 
 // --- Bar Y motion ---------------------------------------------------------
 //
-// Each feature bar enters from below (+50vh), crosses meridian (0), exits top
-// (-50vh) across its slot. Feature 0 is pre-positioned at FIRST_FRAME_Y_VH at
-// scroll = 0 so the cascade opens with the Online Booking pill already visible
-// just below the logos (matching the static Phase 4 mockup).
+// Each feature bar enters from below (+50vh), rises to STICK_Y_VH (the same
+// "below logos" position the Phase 4 mockup uses for Online Booking), dwells
+// there, then exits upward through the logos to −50vh. Feature 0 is pre-
+// positioned at STICK_Y_VH at scroll 0 and stays there through the intro.
 //
 // Returns a scalar MotionValue<number> in vh units (not a string). The caller
 // composes the final transform with useMotionTemplate so that `vh` resolves
-// correctly in the CSS — motion's `y` shorthand interprets numbers as px and
-// mishandles vh strings when interpolated.
+// correctly in the CSS.
 function useFeatureBarY(i: number, scrollYProgress: MotionValue<number>): MotionValue<number> {
   const mid = featureMeridian(i)
-  const enterScroll = i === 0 ? 0 : mid - halfSpan
-  const enterY = i === 0 ? FIRST_FRAME_Y_VH : 50
-  return useTransform(scrollYProgress, piecewise([enterScroll, mid, mid + halfSpan], [enterY, 0, -50]))
+  const slotLen = 2 * halfSpan
+  const slotStart = i === 0 ? introEnd : mid - halfSpan
+  const enterY = i === 0 ? STICK_Y_VH : 50
+  return useTransform(
+    scrollYProgress,
+    piecewise(
+      [
+        slotStart,
+        slotStart + DWELL_START * slotLen,
+        slotStart + DWELL_END * slotLen,
+        slotStart + slotLen,
+      ],
+      [enterY, STICK_Y_VH, STICK_Y_VH, -50],
+    ),
+  )
+}
+
+// --- Pill-crosses-logos timing -------------------------------------------
+//
+// During its exit phase (slot fraction [DWELL_END, 1]), a pill's y goes from
+// +STICK_Y_VH (below logos) to −50 vh (above viewport). It crosses y = 0
+// (the logos' resting line) at this fraction of the slot — that's the moment
+// the killing pill visually meets the competitor logo. The dying logo uses
+// this as its attach point so the hand-off is seamless (no snap).
+const EXIT_CROSS_FRAC = STICK_Y_VH / (STICK_Y_VH + 50)        // 15 / 65 ≈ 0.231
+const CROSS_SLOT_FRAC = DWELL_END + EXIT_CROSS_FRAC * (1 - DWELL_END)  // ≈ 0.808
+
+// Scroll progress where feature i's pill crosses the logo row (y = 0).
+function pillCrossLogos(i: number): number {
+  return introEnd + (i + CROSS_SLOT_FRAC) * slot
 }
 
 // --- Dying logo transform -------------------------------------------------
 //
-// A logo with deathFeatureIndex = d sits at the meridian (y = 0) until its
-// death bar reaches it, then rides upward glued above the bar with a constant
-// 80 px offset (logo half-height 48 + 0.5 rem 8 + bar half-height 24). The
-// px offset is exact regardless of viewport height; the vh portion follows
-// the bar's travel.
+// A dying logo's lifecycle has three moments:
 //
-// Returns a full transform string with -50%/-50% self-center baked in, so
-// the caller sets style.transform directly and doesn't have to compose with
-// motion's y/translateY shorthands (which clobber static CSS transforms).
+//   snapStart  = crossAt − SNAP_SLOT_FRAC·slot
+//     Logo begins lifting off its resting line toward the glue position
+//     (GLUE_OFFSET_PX above the pill). This pre-empts the pill's arrival so
+//     the two never look like they're jumping into each other.
 //
-// Timing:
-//   scroll = deathMid − 0.2·halfSpan  → logo begins attaching (smooth snap)
-//   scroll = deathMid                 → bar at 0,       logo at 0 − 80 px
-//   scroll = deathMid + halfSpan      → bar at −50 vh,  logo at −50 vh − 80 px
+//   crossAt    = pillCrossLogos(d)
+//     The killing pill reaches y = 0. Logo is now at −GLUE_OFFSET_PX — a
+//     clean 80 px above the pill. They're glued.
+//
+//   slotEnd    = end of d's slot
+//     Pill is at −50 vh. Logo is at −50 vh − GLUE_OFFSET_PX — still 80 px
+//     above. Both off-screen.
+//
+// During [snapStart, crossAt] only the px offset moves (logo "lifts"); during
+// [crossAt, slotEnd] only the vh moves (logo "rides" with the pill at
+// constant offset). The motion template composes both.
 const GLUE_OFFSET_PX = 80
+const SNAP_SLOT_FRAC = 0.05         // how much of a slot the pre-lift consumes
 function useLogoTransform(competitor: Competitor, scrollYProgress: MotionValue<number>): MotionValue<string> {
   const d = competitor.deathFeatureIndex
-  const deathMid = d != null ? featureMeridian(d) : 0.5
-  const attachStart = d != null ? deathMid - halfSpan * 0.2 : 0
+  // Non-dying (Swearby): dummy monotonic range — piecewise gives constant 0.
+  const crossAt = d != null ? pillCrossLogos(d) : 0.5
+  const slotEnd = d != null ? introEnd + (d + 1) * slot : 1
+  const snapStart = d != null ? crossAt - SNAP_SLOT_FRAC * slot : 0
   const yVh = useTransform(
     scrollYProgress,
     piecewise(
-      [attachStart, deathMid, deathMid + halfSpan],
+      [snapStart, crossAt, slotEnd],
       d != null ? [0, 0, -50] : [0, 0, 0],
     ),
   )
   const yPx = useTransform(
     scrollYProgress,
-    piecewise([attachStart, deathMid], d != null ? [0, -GLUE_OFFSET_PX] : [0, 0]),
+    piecewise(
+      [snapStart, crossAt, slotEnd],
+      d != null ? [0, -GLUE_OFFSET_PX, -GLUE_OFFSET_PX] : [0, 0, 0],
+    ),
   )
   return useMotionTemplate`translate(-50%, calc(-50% + ${yVh}vh + ${yPx}px))`
 }
 
-// --- Logo opacity (fade out slightly past death) --------------------------
+// --- Logo opacity (fades near the end of its death ride) -----------------
 function useLogoOpacity(competitor: Competitor, scrollYProgress: MotionValue<number>) {
   const d = competitor.deathFeatureIndex
-  const deathMid = d != null ? featureMeridian(d) : 0
+  const crossAt = d != null ? pillCrossLogos(d) : 0
+  const slotEnd = d != null ? introEnd + (d + 1) * slot : 1
+  // Opaque through the first 60 % of the ride (snap + most of the ascent),
+  // then fade to 0 by slotEnd so the logo doesn't clip the viewport edge.
+  const plateauEnd = crossAt + 0.6 * (slotEnd - crossAt)
   return useTransform(
     scrollYProgress,
     piecewise(
-      [deathMid, deathMid + halfSpan * 0.6, deathMid + halfSpan],
+      [crossAt, plateauEnd, slotEnd],
       d != null ? [1, 1, 0] : [1, 1, 1],
     ),
   )
 }
 
-// --- Line opacity per logo (fast fade at glue, stays 0 after) ----------
-//
-// The moment the kill bar glues to the logo (attachStart), the line drops
-// out quickly — it finishes fading by the bar's meridian crossing. After
-// that it stays at 0 forever. Surviving lines stay at opacity 1.
+// --- Line opacity per logo (fades fast as the logo begins to lift) -------
 function useLineOpacity(competitor: Competitor, scrollYProgress: MotionValue<number>) {
   const d = competitor.deathFeatureIndex
-  const deathMid = d != null ? featureMeridian(d) : 0.5
-  const attachStart = d != null ? deathMid - halfSpan * 0.2 : 0
+  const crossAt = d != null ? pillCrossLogos(d) : 0
+  const slotEnd = d != null ? introEnd + (d + 1) * slot : 1
+  const snapStart = d != null ? crossAt - SNAP_SLOT_FRAC * slot : 0
+  // Fade begins at snapStart (when the logo starts to lift) and finishes
+  // within the first 30 % of the remaining slot, then stays at 0.
+  const fadeEnd = snapStart + 0.3 * (slotEnd - snapStart)
   return useTransform(
     scrollYProgress,
-    piecewise([attachStart, deathMid, 1], d != null ? [1, 0, 0] : [1, 1, 1]),
+    piecewise([snapStart, fadeEnd, 1], d != null ? [1, 0, 0] : [1, 1, 1]),
   )
 }
 
@@ -231,10 +325,16 @@ function LineColumn({
   competitor,
   scrollYProgress,
   swearbyGoldOpacity,
+  aboveLineScaleY,
+  belowLineSolidOpacity,
+  belowLineDottedOpacity,
 }: {
   competitor: Competitor
   scrollYProgress: MotionValue<number>
   swearbyGoldOpacity: MotionValue<number>
+  aboveLineScaleY: MotionValue<number>
+  belowLineSolidOpacity: MotionValue<number>
+  belowLineDottedOpacity: MotionValue<number>
 }) {
   const lineOpacity = useLineOpacity(competitor, scrollYProgress)
   return (
@@ -243,8 +343,10 @@ function LineColumn({
         className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-[1.5px]"
         style={{ opacity: lineOpacity }}
       >
-        {/* Above-logo: solid gold, faded at the top (viewport-edge side) */}
-        <div
+        {/* Above-logo: solid gold, faded at the top. Scales from 0→1 during
+            the intro anchored at the bottom edge — reads as the line being
+            pulled out of the top of the logo. */}
+        <motion.div
           className="absolute left-0 w-[1.5px]"
           style={{
             top: 0,
@@ -252,10 +354,26 @@ function LineColumn({
             background: COLORS.gold,
             WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
             maskImage: 'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
+            scaleY: aboveLineScaleY,
+            transformOrigin: 'bottom',
           }}
         />
-        {/* Below-logo: dotted gold, faded at the bottom (viewport-edge side) */}
-        <div
+        {/* Below-logo SOLID — the Phase 4 first-frame look. Fades out as the
+            dotted overlay fades in during the intro. */}
+        <motion.div
+          className="absolute left-0 w-[1.5px]"
+          style={{
+            top: `calc(50% + ${LOGO_HALF_GAP}px)`,
+            bottom: 0,
+            background: COLORS.gold,
+            WebkitMaskImage: 'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
+            maskImage: 'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
+            opacity: belowLineSolidOpacity,
+          }}
+        />
+        {/* Below-logo DOTTED — the permanent cascade look. Fades in during
+            the intro on top of the solid. */}
+        <motion.div
           className="absolute left-0 w-[1.5px]"
           style={{
             top: `calc(50% + ${LOGO_HALF_GAP}px)`,
@@ -265,6 +383,7 @@ function LineColumn({
             backgroundRepeat: 'repeat-y',
             WebkitMaskImage: 'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
             maskImage: 'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
+            opacity: belowLineDottedOpacity,
           }}
         />
         {/* Swearby gold overlay — fully opaque gold after coronation */}
@@ -326,6 +445,12 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
   })
 
   const swearbyGoldOpacity = useSwearbyLineGoldOpacity(scrollYProgress)
+  const headlineOpacity = useHeadlineOpacity(scrollYProgress)
+  // Computed once, then shared across all 7 LineColumns — every column
+  // animates in lockstep during the intro.
+  const aboveLineScaleY = useAboveLineScaleY(scrollYProgress)
+  const belowLineSolidOpacity = useBelowLineSolidOpacity(scrollYProgress)
+  const belowLineDottedOpacity = useBelowLineDottedOpacity(scrollYProgress)
   const guestName = ownerName ?? 'your partner'
 
   // `position: sticky` dies inside any ancestor with `overflow: hidden`,
@@ -385,7 +510,10 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
   }, [])
 
   return (
-    <div className="[font-family:var(--font-plus-jakarta)]" style={{ background: COLORS.cream }}>
+    <div
+      className="[font-family:var(--font-plus-jakarta)] mx-auto relative"
+      style={{ background: COLORS.cream, maxWidth: 520 }}
+    >
       {/* Sticky cascade section */}
       <section
         ref={sectionRef}
@@ -409,7 +537,7 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
               viewport center regardless of headline height. */}
           <div
             className="absolute inset-x-0 z-10 px-6 text-center"
-            style={{ top: 'clamp(80px, 10vh, 120px)' }}
+            style={{ top: 'clamp(56px, 7vh, 96px)' }}
           >
             <h2
               className="font-serif text-[#263C30]"
@@ -417,18 +545,20 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
             >
               Swearby
             </h2>
-            <h1
-              className="mt-6 font-sans"
+            <motion.h1
+              className="mt-8 font-sans"
               style={{
-                fontSize: 'clamp(1.75rem, 6vw, 2.5rem)',
+                fontSize: 'clamp(2.25rem, 10.5vw, 2.5rem)',
                 fontWeight: 500,
-                lineHeight: 1.18,
+                lineHeight: 1.1,
+                letterSpacing: '-0.02em',
                 color: COLORS.ink,
+                opacity: headlineOpacity,
               }}
             >
               Your software is<br />
               holding you back.
-            </h1>
+            </motion.h1>
           </div>
 
           {/* Layer 1 (bottom) — vertical lines. Symmetrically inset from the
@@ -447,6 +577,9 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
                 competitor={c}
                 scrollYProgress={scrollYProgress}
                 swearbyGoldOpacity={swearbyGoldOpacity}
+                aboveLineScaleY={aboveLineScaleY}
+                belowLineSolidOpacity={belowLineSolidOpacity}
+                belowLineDottedOpacity={belowLineDottedOpacity}
               />
             ))}
           </div>

@@ -1,10 +1,29 @@
 'use client'
 
+import { useRef } from 'react'
+import { motion, useInView } from 'motion/react'
 import { COLORS } from './data'
 
+// Entrance sequence timing (seconds). Each element waits for the one before
+// it to settle, so the crown lands, then the line draws, then the headline
+// rises. Tweak here — everything below reads from these constants.
+const ENTER = {
+  crown:    { delay: 0.15, duration: 0.65 },
+  line:     { delay: 0.55, duration: 0.60 },
+  headline: { delay: 0.95, duration: 0.55 },
+}
+
 export function VictorScreen() {
+  const ref = useRef<HTMLElement>(null)
+  // `once: true` so entering the viewport once locks the animation in — if
+  // the user scrolls back up past the cascade and down again, nothing resets.
+  // `amount: 0.3` waits until ~30% of the section is in view so the user
+  // actually sees the crown land rather than missing it at the edge.
+  const inView = useInView(ref, { once: true, amount: 0.3 })
+
   return (
     <section
+      ref={ref}
       className="relative w-full flex flex-col items-center overflow-hidden"
       style={{
         background: COLORS.cream,
@@ -61,22 +80,31 @@ export function VictorScreen() {
         Swearby
       </h2>
 
-      {/* Crown / trophy icon */}
-      <svg
+      {/* Crown / trophy icon — drops onto the Swearby wordmark */}
+      <motion.svg
         className="relative z-10 mt-40"
         width="40"
         height="30"
         viewBox="0 0 40 30"
         fill="none"
+        initial={{ opacity: 0, y: -28, scale: 0.7 }}
+        animate={inView ? { opacity: 1, y: 0, scale: 1 } : undefined}
+        transition={{
+          delay: ENTER.crown.delay,
+          duration: ENTER.crown.duration,
+          ease: [0.22, 1, 0.36, 1],
+        }}
+        style={{ transformOrigin: '50% 100%' }}
       >
         <path
           d="M30.16 13.28L20 0L9.84 13.28L4.16 9.7L2.28 11.04L5.1 25.4L6.33 26.42H33.66L34.89 25.4L37.72 11.04L35.84 9.7L30.16 13.28Z"
           fill={COLORS.gold}
         />
-      </svg>
+      </motion.svg>
 
-      {/* Vertical "Swearby Victor" wordmark — rotated writing-mode */}
-      <div
+      {/* Vertical "Swearby Victor" wordmark — rotated writing-mode. Fades in
+          with the crown so the crown feels like it's landing on something. */}
+      <motion.div
         className="relative z-10 mt-6"
         style={{
           writingMode: 'vertical-rl',
@@ -88,23 +116,33 @@ export function VictorScreen() {
           color: COLORS.green,
           letterSpacing: '0.25em',
         }}
+        initial={{ opacity: 0 }}
+        animate={inView ? { opacity: 1 } : undefined}
+        transition={{ delay: ENTER.crown.delay + 0.1, duration: 0.5 }}
       >
         Swearby Victor
-      </div>
+      </motion.div>
 
-      {/* Gold-to-cream gradient line */}
-      <div
-        className="relative z-10 mt-8"
+      {/* Gold-to-cream gradient line — scales down from the wordmark. */}
+      <motion.div
+        className="relative z-10 mt-8 origin-top"
         style={{
           width: 2,
           height: 74,
           background: `linear-gradient(to bottom, ${COLORS.gold}, ${COLORS.cream})`,
           opacity: 0.5,
         }}
+        initial={{ scaleY: 0 }}
+        animate={inView ? { scaleY: 1 } : undefined}
+        transition={{
+          delay: ENTER.line.delay,
+          duration: ENTER.line.duration,
+          ease: [0.22, 1, 0.36, 1],
+        }}
       />
 
-      {/* Headline — "They're built to take your money." */}
-      <h1
+      {/* Headline — "They're built to take your money." Rises in from below. */}
+      <motion.h1
         className="relative z-10 mt-10 font-sans text-center"
         style={{
           fontSize: 'clamp(1.75rem, 7vw, 2.25rem)',
@@ -114,9 +152,16 @@ export function VictorScreen() {
           letterSpacing: '-0.01em',
           maxWidth: 340,
         }}
+        initial={{ opacity: 0, y: 32 }}
+        animate={inView ? { opacity: 1, y: 0 } : undefined}
+        transition={{
+          delay: ENTER.headline.delay,
+          duration: ENTER.headline.duration,
+          ease: [0.22, 1, 0.36, 1],
+        }}
       >
         They&apos;re built to take your money.
-      </h1>
+      </motion.h1>
 
       {/* Scroll-down hint — same mark as the rest of the flow */}
       <div className="relative z-10 mt-auto pt-16 flex flex-col items-center gap-2">
