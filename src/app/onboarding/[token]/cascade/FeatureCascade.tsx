@@ -124,9 +124,21 @@ const STICK_Y_VH = 15
 // The opacity curve wraps those: fade-in finishes just before the dwell, and
 // fade-out starts exactly as the dwell ends. That way the bar lingers at
 // full opacity the whole time it's parked over the logos.
+//
+// DWELL_END is relatively early (0.55) so the exit phase gets ~45% of the
+// slot — enough scroll distance that the pill reads as rising rather than
+// snapping off the top.
 const DWELL_START = 0.25
-const DWELL_END = 0.75
+const DWELL_END = 0.55
 const FADE_IN_END = 0.20    // opacity reaches 1 just before the dwell starts
+
+// Feature 0 is already parked at STICK_Y_VH throughout the intro — the user
+// has been looking at it the whole time the lines draw in, so there's nothing
+// left for a conventional dwell to earn. Give it the shortest possible hold
+// and let the exit fill the rest of the slot. Side effect: no dead scroll
+// between the intro ending and feature 1 arriving (feature 0's slow exit
+// bridges the gap).
+const DWELL_END_FIRST = 0.1
 
 // --- Bar opacity ----------------------------------------------------------
 //
@@ -137,12 +149,13 @@ function useFeatureBarOpacity(i: number, scrollYProgress: MotionValue<number>) {
   const slotLen = 2 * halfSpan
   const slotStart = mid - halfSpan
   const inOnly = i === 0
+  const dwellEnd = inOnly ? DWELL_END_FIRST : DWELL_END
   const inputs = inOnly
-    ? [0, slotStart + DWELL_END * slotLen, slotStart + slotLen]
+    ? [0, slotStart + dwellEnd * slotLen, slotStart + slotLen]
     : [
       slotStart,
       slotStart + FADE_IN_END * slotLen,
-      slotStart + DWELL_END * slotLen,
+      slotStart + dwellEnd * slotLen,
       slotStart + slotLen,
     ]
   const outputs = inOnly ? [1, 1, 0] : [0, 1, 1, 0]
@@ -164,13 +177,14 @@ function useFeatureBarY(i: number, scrollYProgress: MotionValue<number>): Motion
   const slotLen = 2 * halfSpan
   const slotStart = i === 0 ? introEnd : mid - halfSpan
   const enterY = i === 0 ? STICK_Y_VH : 50
+  const dwellEnd = i === 0 ? DWELL_END_FIRST : DWELL_END
   return useTransform(
     scrollYProgress,
     piecewise(
       [
         slotStart,
         slotStart + DWELL_START * slotLen,
-        slotStart + DWELL_END * slotLen,
+        slotStart + dwellEnd * slotLen,
         slotStart + slotLen,
       ],
       [enterY, STICK_Y_VH, STICK_Y_VH, -50],
