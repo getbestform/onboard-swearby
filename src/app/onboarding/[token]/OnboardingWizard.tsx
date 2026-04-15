@@ -13,9 +13,11 @@ import { IntakeForm } from './steps/IntakeForm'
 import { ScheduleForm } from './steps/ScheduleForm'
 import { PasswordForm } from './steps/PasswordForm'
 import { ReviewForm } from './steps/ReviewForm'
+import { ContractsStep } from './steps/ContractsStep'
 
 const STEPS = [
   { id: 'account',     label: 'Account',        icon: 'user'      },
+  { id: 'contracts',   label: 'Agreements',     icon: 'contract'  },
   { id: 'payment',     label: 'Payment',        icon: 'payments'  },
   { id: 'business',    label: 'Business Info',  icon: 'business'  },
   { id: 'prescribers', label: 'Prescribers',    icon: 'medical'   },
@@ -27,6 +29,7 @@ const STEPS = [
 
 const STEP_META = [
   { title: 'Create Account',     instruction: { heading: 'Secure Your Access',            body: 'Set a password for your clinic portal. This will be your login once your account is activated after the onboarding call.',                      note: 'Password is stored securely and used by our team to provision your account' } },
+  { title: 'Sign Agreements',    instruction: { heading: 'Legal Agreements',              body: 'Review and sign the three required agreements. Each opens a secure DocuSign session with your name and entity pre-filled.',                      note: 'All 3 agreements must be signed before proceeding to payment' } },
   { title: 'Deposit & Payment',  instruction: { heading: 'Secure Your Position',          body: 'A $2,500 deposit confirms your allocation for the upcoming drug distribution cycle and operational integration.',                                note: 'PCI-compliant processing via Stripe / NMI' } },
   { title: 'Clinic Foundation',  instruction: { heading: 'Identity Matters',              body: 'Provide the foundational details of your practice. This information will appear on patient communications, prescriptions, and billing statements.', note: 'Proof of Clinic Registration (IRS SS-4 or similar)' } },
   { title: 'Prescriber Details', instruction: { heading: 'Clinical Authority',            body: 'Enter DEA and licensing information for your primary prescriber. All prescribers must be verified before catalog access is granted.',             note: 'DEA Registration Certificate + State Medical License' } },
@@ -118,6 +121,13 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
         />
       )
       case 1: return (
+        <ContractsStep
+          token={token}
+          onAllSigned={advanceStep}
+          onBack={() => setStep((s) => s - 1)}
+        />
+      )
+      case 2: return (
         <BillingForm
           token={token}
           data={draft}
@@ -126,11 +136,11 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
           onAdvance={advanceStep}
         />
       )
-      case 2: return <BusinessInfoForm {...props} />
-      case 3: return <PrescribersForm {...props} />
-      case 4: return <DrugCatalogForm {...props} />
-      case 5: return <IntakeForm token={token} {...props} />
-      case 6: return (
+      case 3: return <BusinessInfoForm {...props} />
+      case 4: return <PrescribersForm {...props} />
+      case 5: return <DrugCatalogForm {...props} />
+      case 6: return <IntakeForm token={token} {...props} />
+      case 7: return (
         <ScheduleForm
           data={draft}
           onBooked={async (uid, startTime) => {
@@ -149,7 +159,7 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
           onContinue={advanceStep}
         />
       )
-      case 7: return <ReviewForm token={token} data={draft} onComplete={onComplete} />
+      case 8: return <ReviewForm token={token} data={draft} onComplete={onComplete} />
       default: return null
     }
   }
@@ -245,8 +255,8 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
                 <div className="bg-white p-10 rounded shadow-sm ring-1 ring-black/5">
                   {renderStepForm()}
 
-                  {/* Account, Payment, and Schedule steps manage their own navigation buttons */}
-                  {step < 7 && step !== 0 && step !== 1 && step !== 6 && (
+                  {/* Account, Contracts, Payment, and Schedule steps manage their own navigation buttons */}
+                  {step < 8 && step !== 0 && step !== 1 && step !== 2 && step !== 7 && (
                     <div className="pt-10 flex justify-end items-center gap-4">
                       {step > 0 && (
                         <button type="button" onClick={() => setStep((s) => s - 1)}

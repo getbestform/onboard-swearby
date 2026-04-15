@@ -39,11 +39,11 @@ export type FieldErrors = Record<string, string>
 /** Runs the schema for the given step and returns a flat errors map, or null if valid. */
 export function validateStep(step: number, draft: Record<string, unknown>): FieldErrors | null {
   const schemas: Record<number, z.ZodTypeAny> = {
-    // steps 0 (PasswordForm) and 1 (BillingForm) manage their own validation
-    2: businessInfoSchema,
-    3: prescribersSchema,
-    4: drugCatalogSchema,
-    5: intakeSchema,
+    // steps 0 (PasswordForm), 1 (ContractsStep), and 2 (BillingForm) manage their own validation
+    3: businessInfoSchema,
+    4: prescribersSchema,
+    5: drugCatalogSchema,
+    6: intakeSchema,
   }
 
   const schema = schemas[step]

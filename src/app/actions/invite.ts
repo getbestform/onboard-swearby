@@ -397,3 +397,53 @@ export async function retrievePaymentDetails(
     return { error: 'Failed to retrieve payment details.' }
   }
 }
+
+export type AgreementStatus = {
+  agreementType: 'msa' | 'rev_marketing' | 'baa'
+  status: 'pending' | 'signed'
+  signedAt: string | null
+}
+
+export async function fetchAgreements(
+  token: string,
+): Promise<{ agreements: AgreementStatus[] } | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  try {
+    const res = await fetch(`${process.env.VERTI_API_URL}/api/partner-invites/${token}/agreements`, {
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+      cache: 'no-store',
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to fetch agreements.' }
+    return { agreements: data.agreements }
+  } catch (err) {
+    console.error('[fetchAgreements]', (err as Error)?.message)
+    return { error: 'Failed to fetch agreements.' }
+  }
+}
+
+export async function requestSigningUrl(
+  token: string,
+  agreementType: 'msa' | 'rev_marketing' | 'baa',
+): Promise<{ signingUrl: string } | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  try {
+    const res = await fetch(
+      `${process.env.VERTI_API_URL}/api/partner-invites/${token}/agreements/${agreementType}/sign`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+      },
+    )
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to start signing session.' }
+    return { signingUrl: data.signingUrl }
+  } catch (err) {
+    console.error('[requestSigningUrl]', (err as Error)?.message)
+    return { error: 'Failed to start signing session.' }
+  }
+}
