@@ -348,7 +348,7 @@ export default function InvitesPage() {
                 <td className="px-5 py-3.5 text-secondary">{fmtDate(inv.expiresAt)}</td>
                 <td className="px-5 py-3.5 text-secondary">{fmtDate(inv.createdAt)}</td>
                 <td className="px-5 py-3.5">
-                  {inv.status === 'call_scheduled' ? (
+                  {['completed', 'call_scheduled'].includes(inv.status) ? (
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleAction(inv.token, 'activate')}
@@ -357,17 +357,6 @@ export default function InvitesPage() {
                       >
                         {actioning?.token === inv.token && actioning.type === 'activate' ? '…' : 'Activate Portal'}
                       </button>
-                      <button
-                        onClick={() => handleAction(inv.token, 'deny')}
-                        disabled={actioning?.token === inv.token}
-                        className="flex items-center gap-1.5 px-3 h-7 rounded border border-rose-200 bg-rose-50 text-[11px] font-medium text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {actioning?.token === inv.token && actioning.type === 'deny' ? '…' : 'Deny'}
-                      </button>
-                    </div>
-                  ) : inv.status === 'completed' ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-secondary italic">Awaiting call</span>
                       <button
                         onClick={() => handleAction(inv.token, 'deny')}
                         disabled={actioning?.token === inv.token}
