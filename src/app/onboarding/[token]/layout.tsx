@@ -32,15 +32,26 @@ export default function OnboardingTokenLayout({ children }: { children: React.Re
       <LeafTopLeft />
       <LeafBottomRight />
 
-      <header className="relative z-10 px-8 md:px-5 py-8 md:py-10 mx-auto max-w-[1200px] w-full flex justify-center md:justify-start">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          id="onboarding-logo"
-          src="/swearby-logo.svg"
-          alt="Swearby"
-          className="h-5 md:h-6 w-auto"
-          style={{ filter: 'brightness(0) invert(1)' }}
-        />
+      {/* Fixed so it stays pinned at viewport top and doesn't eat any scroll
+          distance — critical for the FeatureCascade, which measures scroll
+          from its own section top and can't afford a header that consumes
+          ~80 px of the scrollable range before the animation even starts.
+          `backgroundColor: inherit` picks up the root's dynamic phase-bg
+          (green → cream) so scrolled content doesn't show through. */}
+      <header
+        className="fixed top-0 left-0 right-0 z-40 flex"
+        style={{ backgroundColor: 'inherit' }}
+      >
+        <div className="mx-auto max-w-[1200px] w-full px-8 md:px-5 py-8 md:py-10 flex justify-center md:justify-start">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            id="onboarding-logo"
+            src="/swearby-logo.svg"
+            alt="Swearby"
+            className="h-5 md:h-6 w-auto"
+            style={{ filter: 'brightness(0) invert(1)' }}
+          />
+        </div>
       </header>
 
       <div className="relative z-10 flex-1 flex flex-col overflow-hidden">

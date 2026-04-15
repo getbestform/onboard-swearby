@@ -24,8 +24,7 @@ export function Phase4() {
         }}
       >
         Your software is<br />
-        holding you back.
-      </h1>
+        holding you back.      </h1>
 
       {/* Logo strip + lines section */}
       <div className="mt-28 w-full">
