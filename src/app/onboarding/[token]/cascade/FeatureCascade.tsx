@@ -553,12 +553,12 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
             className="absolute inset-x-0 z-10 px-6 text-center"
             style={{ top: 'clamp(56px, 7vh, 96px)' }}
           >
-            <h2
-              className="font-serif text-[#263C30]"
-              style={{ fontFamily: 'serif', fontSize: 22, fontWeight: 500 }}
-            >
-              Swearby
-            </h2>
+            <img
+              src="/swearby-logo.svg"
+              alt="Swearby"
+              className="mx-auto mt-[-20px]"
+              style={{ height: 22, width: 'auto' }}
+            />
             <motion.h1
               className="mt-8 font-sans"
               style={{

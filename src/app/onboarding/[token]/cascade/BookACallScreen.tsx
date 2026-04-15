@@ -13,49 +13,27 @@ export function BookACallScreen({ guestName }: { guestName: string }) {
         padding: '80px 24px 40px',
       }}
     >
-      {/* Botanical decoration — top-left */}
-      <svg
-        className="absolute pointer-events-none"
-        style={{ top: 40, left: -20, width: 220, height: 200, opacity: 0.2 }}
-        viewBox="0 0 220 200"
-        fill="none"
-      >
-        <path
-          d="M20 20C60 30 110 60 140 100M50 40L90 70M80 50L100 80"
-          stroke={COLORS.gold}
-          strokeWidth="0.76"
-          strokeLinecap="round"
-        />
-      </svg>
 
-      {/* Botanical decoration — bottom-right */}
-      <svg
-        className="absolute pointer-events-none"
-        style={{ bottom: 120, right: -30, width: 220, height: 200, opacity: 0.2 }}
-        viewBox="0 0 220 200"
-        fill="none"
-      >
-        <path
-          d="M200 180C160 170 110 140 80 100M170 160L130 130"
-          stroke={COLORS.gold}
-          strokeWidth="0.76"
-          strokeLinecap="round"
-        />
-      </svg>
+      {/* Botanical decoration — top-left */}
+      <div className="absolute pointer-events-none select-none top-[65px] left-[-15px] w-[200px] h-[175px] z-0">
+        <img src="/wlc-leaf.svg" alt="" className="w-full h-full" />
+      </div>
+
+      {/* Botanical decoration — bottom-left */}
+      <div className="absolute pointer-events-none select-none bottom-[65px] right-[-15px] w-[200px] h-[175px] z-0">
+        <img src="/wlc-leaf-down.svg" alt="" className="w-full h-full" />
+      </div>
+
 
       <div className="relative z-10 flex flex-col items-center text-center">
+
         {/* Swearby wordmark */}
-        <h2
-          className="font-serif"
-          style={{
-            color: COLORS.green,
-            fontSize: 22,
-            fontWeight: 500,
-            fontStyle: 'italic',
-          }}
-        >
-          Swearby
-        </h2>
+        <img
+          src="/swearby-logo.svg"
+          alt="Swearby"
+          className="mx-auto"
+          style={{ height: 22, width: 'auto' }}
+        />
 
         {/* Positive headline */}
         <h1
