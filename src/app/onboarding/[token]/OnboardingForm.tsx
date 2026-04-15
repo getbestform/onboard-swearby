@@ -44,6 +44,6 @@ export default function OnboardingForm({ token, ownerName, email, initiallyVerif
       }}
     />
   )
-  if (step === 'wizard') return <OnboardingWizard token={token} initialDraft={initialDraft} onComplete={() => setStep('complete')} />
+  if (step === 'wizard') return <OnboardingWizard token={token} initialDraft={initialDraft} ownerName={ownerName} email={email} onComplete={() => setStep('complete')} />
   return <CompleteStep />
 }

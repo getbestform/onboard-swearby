@@ -11,31 +11,34 @@ import { DrugCatalogForm } from './steps/DrugCatalogForm'
 import { BillingForm } from './steps/BillingForm'
 import { IntakeForm } from './steps/IntakeForm'
 import { ScheduleForm } from './steps/ScheduleForm'
+import { PasswordForm } from './steps/PasswordForm'
 import { ReviewForm } from './steps/ReviewForm'
 
 const STEPS = [
+  { id: 'account',     label: 'Account',        icon: 'user'      },
+  { id: 'payment',     label: 'Payment',        icon: 'payments'  },
   { id: 'business',    label: 'Business Info',  icon: 'business'  },
   { id: 'prescribers', label: 'Prescribers',    icon: 'medical'   },
   { id: 'catalog',     label: 'Drug Catalog',   icon: 'medication'},
-  { id: 'billing',     label: 'Billing',        icon: 'payments'  },
   { id: 'intake',      label: 'Intake',         icon: 'intake'    },
   { id: 'schedule',    label: 'Schedule Call',  icon: 'calendar'  },
   { id: 'review',      label: 'Review',         icon: 'review'    },
 ]
 
 const STEP_META = [
-  { title: 'Clinic Foundation',  instruction: { heading: 'Identity Matters',          body: 'Provide the foundational details of your practice. This information will appear on patient communications, prescriptions, and billing statements.', note: 'Proof of Clinic Registration (IRS SS-4 or similar)' } },
-  { title: 'Prescriber Details', instruction: { heading: 'Clinical Authority',         body: 'Enter DEA and licensing information for your primary prescriber. All prescribers must be verified before catalog access is granted.',             note: 'DEA Registration Certificate + State Medical License' } },
-  { title: 'Drug Catalog Setup', instruction: { heading: 'Your Formulary',             body: 'Enter the drugs, doses, and pricing you intend to dispense. State availability determines where prescriptions can be filled.',                   note: 'State-specific formulary approval may be required' } },
-  { title: 'Deposit & Billing',  instruction: { heading: 'Secure Your Position',       body: 'A $2,500 deposit confirms your allocation for the upcoming drug distribution cycle and operational integration.',                                note: 'PCI-compliant processing via Stripe / NMI' } },
-  { title: 'Intake & Branding',  instruction: { heading: 'Your Practice, Your Identity', body: 'Upload your clinic logo and brand colors. These appear on patient-facing materials and your SwearBy portal.',                                  note: 'Logo should be PNG or SVG, minimum 512×512px' } },
-  { title: 'Onboarding Call',    instruction: { heading: 'Book Your Kickoff',           body: "Schedule a 30-minute onboarding call with our clinical team. We'll walk through your setup, answer questions, and confirm your integration.",   note: 'Calendar powered by Cal.com — video link sent via email' } },
-  { title: 'Review & Submit',    instruction: { heading: 'Final Review',               body: 'Verify all information is accurate before submitting. Our clinical team will review your application within 24 hours.',                          note: 'You will receive a confirmation email upon submission' } },
+  { title: 'Create Account',     instruction: { heading: 'Secure Your Access',            body: 'Set a password for your clinic portal. This will be your login once your account is activated after the onboarding call.',                      note: 'Password is stored securely and used by our team to provision your account' } },
+  { title: 'Deposit & Payment',  instruction: { heading: 'Secure Your Position',          body: 'A $2,500 deposit confirms your allocation for the upcoming drug distribution cycle and operational integration.',                                note: 'PCI-compliant processing via Stripe / NMI' } },
+  { title: 'Clinic Foundation',  instruction: { heading: 'Identity Matters',              body: 'Provide the foundational details of your practice. This information will appear on patient communications, prescriptions, and billing statements.', note: 'Proof of Clinic Registration (IRS SS-4 or similar)' } },
+  { title: 'Prescriber Details', instruction: { heading: 'Clinical Authority',            body: 'Enter DEA and licensing information for your primary prescriber. All prescribers must be verified before catalog access is granted.',             note: 'DEA Registration Certificate + State Medical License' } },
+  { title: 'Drug Catalog Setup', instruction: { heading: 'Your Formulary',                body: 'Enter the drugs, doses, and pricing you intend to dispense. State availability determines where prescriptions can be filled.',                   note: 'State-specific formulary approval may be required' } },
+  { title: 'Intake & Branding',  instruction: { heading: 'Your Practice, Your Identity',  body: 'Upload your clinic logo and brand colors. These appear on patient-facing materials and your SwearBy portal.',                                  note: 'Logo should be PNG or SVG, minimum 512×512px' } },
+  { title: 'Onboarding Call',    instruction: { heading: 'Book Your Kickoff',              body: "Schedule a 30-minute onboarding call with our clinical team. We'll walk through your setup, answer questions, and confirm your integration.",   note: 'Calendar powered by Cal.com — video link sent via email' } },
+  { title: 'Review & Submit',    instruction: { heading: 'Final Review',                  body: 'Verify all information is accurate before submitting. Our clinical team will review your application within 24 hours.',                          note: 'You will receive a confirmation email upon submission' } },
 ]
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
-export function OnboardingWizard({ token, initialDraft, onComplete }: { token: string; initialDraft?: Record<string, unknown>; onComplete: () => void }) {
+export function OnboardingWizard({ token, initialDraft, ownerName, email, onComplete }: { token: string; initialDraft?: Record<string, unknown>; ownerName?: string; email?: string; onComplete: () => void }) {
   const [step, setStep] = useState(0)
   const [draft, setDraft] = useState<DraftData>((initialDraft ?? {}) as DraftData)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
@@ -99,10 +102,21 @@ export function OnboardingWizard({ token, initialDraft, onComplete }: { token: s
   function renderStepForm() {
     const props = { data: draft, onChange: handleChange, errors: fieldErrors }
     switch (step) {
-      case 0: return <BusinessInfoForm {...props} />
-      case 1: return <PrescribersForm {...props} />
-      case 2: return <DrugCatalogForm {...props} />
-      case 3: return (
+      case 0: return (
+        <PasswordForm
+          data={draft}
+          onChange={handleChange}
+          ownerName={ownerName}
+          email={email}
+          onAdvance={async (password) => {
+            const patch = { accountPassword: password }
+            handleChange(patch)
+            await saveDraft(token, { ...draftRef.current, ...patch } as Record<string, unknown>)
+            advanceStep()
+          }}
+        />
+      )
+      case 1: return (
         <BillingForm
           token={token}
           data={draft}
@@ -111,9 +125,13 @@ export function OnboardingWizard({ token, initialDraft, onComplete }: { token: s
           onAdvance={advanceStep}
         />
       )
-      case 4: return <IntakeForm token={token} {...props} />
-      case 5: return (
+      case 2: return <BusinessInfoForm {...props} />
+      case 3: return <PrescribersForm {...props} />
+      case 4: return <DrugCatalogForm {...props} />
+      case 5: return <IntakeForm token={token} {...props} />
+      case 6: return (
         <ScheduleForm
+          data={draft}
           onBooked={async (uid, startTime) => {
             const patch = { calBookingUid: uid, calBookingStartTime: startTime }
             handleChange(patch)
@@ -122,9 +140,10 @@ export function OnboardingWizard({ token, initialDraft, onComplete }: { token: s
             await saveDraft(token, { ...draftRef.current, ...patch } as Record<string, unknown>)
             advanceStep()
           }}
+          onContinue={advanceStep}
         />
       )
-      case 6: return <ReviewForm token={token} data={draft} onComplete={onComplete} />
+      case 7: return <ReviewForm token={token} data={draft} onComplete={onComplete} />
       default: return null
     }
   }
@@ -220,8 +239,8 @@ export function OnboardingWizard({ token, initialDraft, onComplete }: { token: s
                 <div className="bg-white p-10 rounded shadow-sm ring-1 ring-black/5">
                   {renderStepForm()}
 
-                  {/* Billing step manages its own navigation buttons */}
-                  {step < 6 && step !== 3 && step !== 5 && (
+                  {/* Account, Payment, and Schedule steps manage their own navigation buttons */}
+                  {step < 7 && step !== 0 && step !== 1 && step !== 6 && (
                     <div className="pt-10 flex justify-end items-center gap-4">
                       {step > 0 && (
                         <button type="button" onClick={() => setStep((s) => s - 1)}

@@ -1,13 +1,29 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import CalEmbed, { getCalApi } from '@calcom/embed-react'
+import { type DraftData } from '../types'
+import { Icon } from '../Icon'
 
-export function ScheduleForm({ onBooked }: { onBooked: (uid: string, startTime: string) => void }) {
+export function ScheduleForm({
+  data,
+  onBooked,
+  onContinue,
+}: {
+  data: DraftData
+  onBooked: (uid: string, startTime: string) => void
+  onContinue: () => void
+}) {
   const raw = process.env.NEXT_PUBLIC_CAL_ONBOARDING_LINK
 
+  // Keep a ref to the latest onBooked so we never call a stale version,
+  // but the effect only runs once — preventing duplicate listener registration
+  // which would cause the step to advance twice on a single booking.
+  const onBookedRef = useRef(onBooked)
+  onBookedRef.current = onBooked
+
   useEffect(() => {
-    if (!raw) return
+    if (!raw || data.calBookingUid) return
     let cancelled = false
 
     getCalApi({ namespace: 'onboarding' }).then((cal) => {
@@ -15,13 +31,54 @@ export function ScheduleForm({ onBooked }: { onBooked: (uid: string, startTime: 
       cal('on', {
         action: 'bookingSuccessfulV2',
         callback: (e: CustomEvent<{ data: { uid?: string; startTime?: string } }>) => {
-          onBooked(e.detail.data.uid ?? '', e.detail.data.startTime ?? '')
+          onBookedRef.current(e.detail.data.uid ?? '', e.detail.data.startTime ?? '')
         },
       })
     })
 
     return () => { cancelled = true }
-  }, [onBooked])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [raw])
+
+  // Already booked — show confirmation instead of the widget
+  if (data.calBookingUid) {
+    const formattedTime = data.calBookingStartTime
+      ? new Date(data.calBookingStartTime).toLocaleString('en-US', {
+          weekday: 'long', month: 'long', day: 'numeric',
+          year: 'numeric', hour: 'numeric', minute: '2-digit',
+        })
+      : null
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-start gap-4 p-6 bg-[#f0f7f3] rounded-lg ring-1 ring-[#1A3C2A]/10">
+          <div className="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full bg-[#1A3C2A] flex items-center justify-center">
+            <Icon name="check" className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="font-semibold text-[#1A3C2A]">Onboarding call scheduled</p>
+            {formattedTime && (
+              <p className="text-sm text-[#424843] mt-1">{formattedTime}</p>
+            )}
+            <p className="text-xs text-[#424843]/60 mt-2">
+              A confirmation email with the video link has been sent to you.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex justify-end items-center gap-4 pt-2">
+          <button
+            type="button"
+            onClick={onContinue}
+            className="px-10 py-4 bg-[#1A3C2A] text-white text-sm font-bold rounded shadow-xl shadow-[#1A3C2A]/10 hover:opacity-90 transition-all flex items-center gap-2"
+          >
+            <span>Continue</span>
+            <Icon name="arrow" className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (!raw) {
     return (
