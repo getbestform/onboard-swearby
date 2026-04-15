@@ -25,8 +25,8 @@ function initialFlowStep(
 ): FlowStep {
   if (forceWelcome) return 'welcome'
   if (!initiallyVerified) return 'verify'
-  if (initialDraft?.welcomeDone === true) return 'wizard'
-  return 'welcome'
+  //if (initialDraft?.welcomeDone === true) return 'wizard'
+  return 'wizard'
 }
 
 export default function OnboardingForm({ token, ownerName, email, initiallyVerified, initialDraft }: OnboardingFormProps) {
@@ -47,6 +47,6 @@ export default function OnboardingForm({ token, ownerName, email, initiallyVerif
       }}
     />
   )
-  if (step === 'wizard') return <OnboardingWizard token={token} initialDraft={initialDraft} onComplete={() => setStep('complete')} />
+  if (step === 'wizard') return <OnboardingWizard token={token} initialDraft={initialDraft} ownerName={ownerName} email={email} onComplete={() => setStep('complete')} />
   return <CompleteStep />
 }

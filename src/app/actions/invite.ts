@@ -262,18 +262,17 @@ export async function verifyInvite(
 export async function createPaymentIntent(
   token: string,
 ): Promise<{ clientSecret: string } | { error: string }> {
-  if (!process.env.STRIPE_SECRET_KEY) {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
     return { error: 'Server misconfiguration.' }
   }
   try {
-    const { getStripe } = await import('@/lib/stripe')
-    const paymentIntent = await getStripe().paymentIntents.create({
-      amount: 250000, // $2,500.00 in cents
-      currency: 'usd',
-      metadata: { token },
+    const res = await fetch(`${process.env.VERTI_API_URL}/api/partner-invites/${token}/payment`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
     })
-    if (!paymentIntent.client_secret) return { error: 'Failed to create payment.' }
-    return { clientSecret: paymentIntent.client_secret }
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to initialize payment. Please try again.' }
+    return { clientSecret: data.clientSecret }
   } catch (err) {
     console.error('[createPaymentIntent]', (err as Error)?.message)
     return { error: 'Failed to initialize payment. Please try again.' }
@@ -330,6 +329,27 @@ export async function denyInvite(
   }
 }
 
+export async function markCallScheduled(
+  token: string,
+): Promise<{ success: true } | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  const url = `${process.env.VERTI_API_URL}/api/partner-invites/${token}/schedule`
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to mark call as scheduled.' }
+    return { success: true }
+  } catch (err) {
+    console.error('[markCallScheduled] fetch failed:', url, (err as Error)?.message)
+    return { error: 'Network error. Please try again.' }
+  }
+}
+
 export async function uploadClinicLogo(
   token: string,
   formData: FormData,
@@ -353,33 +373,77 @@ export async function uploadClinicLogo(
 }
 
 export async function retrievePaymentDetails(
+  token: string,
   paymentIntentId: string,
+  cardholderName?: string,
 ): Promise<{ last4: string; brand: string } | { error: string }> {
-  if (!process.env.STRIPE_SECRET_KEY) {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
     return { error: 'Server misconfiguration.' }
   }
   try {
-    const { getStripe } = await import('@/lib/stripe')
-    const pi = await getStripe().paymentIntents.retrieve(paymentIntentId, {
-      expand: ['payment_method'],
+    const res = await fetch(`${process.env.VERTI_API_URL}/api/partner-invites/${token}/payment/confirm`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}`,
+      },
+      body: JSON.stringify({ paymentIntentId, cardholderName }),
     })
-    const pm = pi.payment_method
-    if (!pm || typeof pm === 'string') {
-      return { error: 'Could not retrieve card details.' }
-    }
-    // Card payment
-    if (pm.card) {
-      return { last4: pm.card.last4, brand: pm.card.brand }
-    }
-    // Link payment — card details nested under pm.link.card if present
-    if (pm.type === 'link') {
-      const linkCard = (pm as unknown as { link?: { card?: { last4: string; brand: string } } }).link?.card
-      if (linkCard) return { last4: linkCard.last4, brand: linkCard.brand }
-      return { last4: '', brand: 'link' }
-    }
-    return { error: 'Could not retrieve card details.' }
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to retrieve payment details.' }
+    return { last4: data.last4, brand: data.brand }
   } catch (err) {
     console.error('[retrievePaymentDetails]', (err as Error)?.message)
     return { error: 'Failed to retrieve payment details.' }
+  }
+}
+
+export type AgreementStatus = {
+  agreementType: 'msa' | 'rev_marketing' | 'baa'
+  status: 'pending' | 'signed'
+  signedAt: string | null
+}
+
+export async function fetchAgreements(
+  token: string,
+): Promise<{ agreements: AgreementStatus[] } | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  try {
+    const res = await fetch(`${process.env.VERTI_API_URL}/api/partner-invites/${token}/agreements`, {
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+      cache: 'no-store',
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to fetch agreements.' }
+    return { agreements: data.agreements }
+  } catch (err) {
+    console.error('[fetchAgreements]', (err as Error)?.message)
+    return { error: 'Failed to fetch agreements.' }
+  }
+}
+
+export async function requestSigningUrl(
+  token: string,
+  agreementType: 'msa' | 'rev_marketing' | 'baa',
+): Promise<{ signingUrl: string } | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  try {
+    const res = await fetch(
+      `${process.env.VERTI_API_URL}/api/partner-invites/${token}/agreements/${agreementType}/sign`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+      },
+    )
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to start signing session.' }
+    return { signingUrl: data.signingUrl }
+  } catch (err) {
+    console.error('[requestSigningUrl]', (err as Error)?.message)
+    return { error: 'Failed to start signing session.' }
   }
 }

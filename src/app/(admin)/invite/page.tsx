@@ -6,7 +6,7 @@ import { sendInvite, listInvites, approveInvite, denyInvite, type Invite } from 
 import { fmtDate, getInviteStatusClasses } from '@/lib/utils'
 
 const entityTypes = ['LLC', 'PLLC', 'Corporation', 'PC', 'Partnership', 'Sole Proprietor', 'Other']
-const statusOptions = ['pending', 'completed', 'approved', 'denied', 'expired']
+const statusOptions = ['pending', 'completed', 'call_scheduled', 'approved', 'denied', 'expired']
 
 type FieldErrors = Record<string, string | string[]>
 
@@ -174,7 +174,7 @@ export default function InvitesPage() {
   const [filterEntityType, setFilterEntityType] = useState('')
 
   const [isPending, startTransition] = useTransition()
-  const [actioning, setActioning] = useState<{ token: string; type: 'approve' | 'deny' } | null>(null)
+  const [actioning, setActioning] = useState<{ token: string; type: 'activate' | 'deny' } | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const load = useCallback((opts: { page: number; search: string; status: string; entityType: string }) => {
@@ -207,15 +207,15 @@ export default function InvitesPage() {
     if (key === 'entityType') setFilterEntityType(value)
   }
 
-  async function handleAction(token: string, type: 'approve' | 'deny') {
+  async function handleAction(token: string, type: 'activate' | 'deny') {
     setActioning({ token, type })
     setActionError(null)
-    const result = type === 'approve' ? await approveInvite(token) : await denyInvite(token)
+    const result = type === 'activate' ? await approveInvite(token) : await denyInvite(token)
     setActioning(null)
     if ('error' in result) {
       setActionError(result.error)
     } else {
-      setInvites((prev) => prev.map((inv) => inv.token === token ? { ...inv, status: type === 'approve' ? 'approved' : 'denied' } : inv))
+      setInvites((prev) => prev.map((inv) => inv.token === token ? { ...inv, status: type === 'activate' ? 'approved' : 'denied' } : inv))
     }
   }
 
@@ -330,7 +330,7 @@ export default function InvitesPage() {
             ) : invites.map((inv) => (
               <tr key={inv.id} className="border-b border-secondary/8 hover:bg-secondary/5 transition-colors">
                 <td className="px-5 py-3.5">
-                  {inv.status === 'completed' ? (
+                  {['completed', 'call_scheduled', 'approved'].includes(inv.status) ? (
                     <Link href={`/invite/${inv.token}`} className="block group">
                       <p className="font-medium text-primary group-hover:underline">{inv.ownerName}</p>
                       <p className="text-xs text-secondary mt-0.5">{inv.email}</p>
@@ -348,14 +348,14 @@ export default function InvitesPage() {
                 <td className="px-5 py-3.5 text-secondary">{fmtDate(inv.expiresAt)}</td>
                 <td className="px-5 py-3.5 text-secondary">{fmtDate(inv.createdAt)}</td>
                 <td className="px-5 py-3.5">
-                  {inv.status === 'completed' ? (
+                  {['completed', 'call_scheduled'].includes(inv.status) ? (
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleAction(inv.token, 'approve')}
+                        onClick={() => handleAction(inv.token, 'activate')}
                         disabled={actioning?.token === inv.token}
-                        className="flex items-center gap-1.5 px-3 h-7 rounded border border-blue-200 bg-blue-50 text-[11px] font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 px-3 h-7 rounded border border-emerald-200 bg-emerald-50 text-[11px] font-medium text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {actioning?.token === inv.token && actioning.type === 'approve' ? '…' : 'Approve'}
+                        {actioning?.token === inv.token && actioning.type === 'activate' ? '…' : 'Activate Portal'}
                       </button>
                       <button
                         onClick={() => handleAction(inv.token, 'deny')}

@@ -14,6 +14,8 @@ export type DraftData = {
   displayName?: string; brandColor?: string; description?: string; yearsInPractice?: string; locations?: string; logoUrl?: string
   // schedule
   calBookingUid?: string; calBookingStartTime?: string
+  // account
+  accountPassword?: string; tosAccepted?: boolean; privacyAccepted?: boolean
 }
 
 export const field = 'w-full bg-[#e4e2dd] border-none rounded px-4 py-3 text-sm text-[#1b1c19] placeholder:text-[#1b1c19]/30 outline-none focus:ring-1 focus:ring-[#1A3C2A]/20 focus:bg-white transition-all'

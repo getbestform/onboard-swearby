@@ -43,6 +43,7 @@ export function Phase4() {
                   height: 96,
                   width: 'auto',
                   maxWidth: 28,
+                  opacity: logo.isSwearby ? 1 : 0.5,
                 }}
               />
             </div>
@@ -54,20 +55,22 @@ export function Phase4() {
 
           {/* Vertical lines — run full height behind the button */}
           <div className="absolute inset-0 flex w-full">
-            {LOGOS.map((_, i) => (
+            {LOGOS.map((logo, i) => (
               <div key={i} className="flex justify-center flex-1 h-full">
                 <div
                   className="w-[2px] rounded-full"
                   style={{
                     height: `${Math.max(80, 100 - Math.abs(i - (LOGOS.length - 1) / 2) * 12)}%`,
-                    background: 'linear-gradient(to bottom, #BDA763, rgba(189,167,99,0.06))',
+                    background: logo.isSwearby
+                      ? 'linear-gradient(to bottom, #BDA763, rgba(189,167,99,0.06))'
+                      : 'linear-gradient(to bottom, rgba(53,51,49,0.18), rgba(53,51,49,0.03))',
                   }}
                 />
               </div>
             ))}
           </div>
 
-          {/* ONLINE BOOKING button — floats over the lines at ~55px from top */}
+          {/* ONLINE BOOKING button — floats over the lines at ~100px from top */}
           <div className="absolute inset-x-0" style={{ top: 100 }}>
             <button
               type="button"
