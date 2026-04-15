@@ -128,52 +128,26 @@ function useBelowLineDottedOpacity(scrollYProgress: MotionValue<number>) {
   return useTransform(scrollYProgress, piecewise([headlineFadeEnd, introEnd], [0, 1]))
 }
 
-// --- Stick position -------------------------------------------------------
+// --- Stick position (feature 0's scroll-0 anchor) -------------------------
 //
-// Every feature pill has the SAME resting spot: STICK_Y_VH below the meridian
-// (i.e., just below the logo row). This matches the static Phase 4 mockup
-// where "Online Booking" sits below the logos with breathing room. Pills
-// enter from far below, rise to STICK_Y_VH, dwell there, then exit upward
-// through the logos and off the top.
+// Feature 0 is pre-positioned at STICK_Y_VH throughout the intro so the
+// scroll-0 frame matches the static Phase-4 mockup (Online Booking pill
+// sits just below the logo row). No other feature parks here — pills 1+
+// transit the slot continuously without stopping.
 const STICK_Y_VH = 15
 
 // --- Bar timing within a slot --------------------------------------------
 //
-// Every slot carves its scroll budget into three phases so each feature has
-// time to read, not just flash past:
+// Each pill transits its slot continuously — no dwell. Features 1+ enter
+// from +50 vh and exit at −50 vh with constant velocity, crossing the
+// logo row (y = 0) at the slot midpoint. Feature 0 starts at STICK_Y_VH
+// (its intro-dwell resting spot) and transits to −50 vh across its slot.
 //
-//   [ 0 %, DWELL_START ]  : enter — bar slides from +50vh up to meridian
-//   [ DWELL_START, DWELL_END ]  : dwell — bar sits at meridian
-//   [ DWELL_END, 100 % ]  : exit  — bar slides from meridian up to −50vh
-//
-// The opacity curve wraps those: fade-in finishes just before the dwell,
-// full opacity is held through the dwell AND the first part of exit (while
-// the pill is rising across the logo row), and fade-out only begins once the
-// pill has visibly cleared the logos. That way the label is at full read
-// while it's overlapping the logo — the exact moment it matters most.
-//
-// DWELL_END is relatively early (0.55) so the exit phase gets ~45% of the
-// slot — enough scroll distance that the pill reads as rising rather than
-// snapping off the top.
-const DWELL_START = 0.25
-const DWELL_END = 0.55
-const FADE_IN_END = 0.20    // opacity reaches 1 just before the dwell starts
-
-// Fraction into the exit phase at which fade-out begins. The pill crosses
-// the logo row (y=0) at EXIT_CROSS_FRAC ≈ 0.23 of exit; we hold full opacity
-// past that — around 0.4 of exit the pill is at y ≈ -11vh, visibly clear of
-// the logos — then fade to 0 across the rest of the exit. Earlier values
-// start the fade while the label still overlaps the logos, which reads as
-// "vanishing too soon".
-const EXIT_FADE_FRAC = 0.4
-
-// Feature 0 is already parked at STICK_Y_VH throughout the intro — the user
-// has been looking at it the whole time the lines draw in, so there's nothing
-// left for a conventional dwell to earn. Give it the shortest possible hold
-// and let the exit fill the rest of the slot. Side effect: no dead scroll
-// between the intro ending and feature 1 arriving (feature 0's slow exit
-// bridges the gap).
-const DWELL_END_FIRST = 0.1
+// The opacity curve holds full opacity around the logo crossing and fades
+// in / out at the slot edges so labels are readable while over the logos
+// but don't clip the viewport edges.
+const FADE_IN_END = 0.20    // opacity reaches 1 by this slot fraction
+const FADE_OUT_START = 0.70 // opacity starts fading out from this slot fraction
 
 // --- Bar opacity ----------------------------------------------------------
 //
@@ -184,21 +158,12 @@ function useFeatureBarOpacity(i: number, scrollYProgress: MotionValue<number>) {
   const slotLen = 2 * halfSpan
   const slotStart = mid - halfSpan
   const inOnly = i === 0
-  const dwellEnd = inOnly ? DWELL_END_FIRST : DWELL_END
-  // Fade begins partway into the exit phase so the pill stays solid while
-  // it's passing through the logos. In slot-fraction terms:
-  //   fadeOutStart = dwellEnd + EXIT_FADE_FRAC * (1 - dwellEnd)
-  // The parameterisation in *exit fraction* (not slot fraction) keeps the
-  // effective pill-y at fade-start the same across features — feature 0's
-  // exit spans 0.9 of its slot while others span 0.45, but both fade from
-  // the same point in space.
-  const fadeOutStart = dwellEnd + EXIT_FADE_FRAC * (1 - dwellEnd)
   const inputs = inOnly
-    ? [0, slotStart + fadeOutStart * slotLen, slotStart + slotLen]
+    ? [0, slotStart + FADE_OUT_START * slotLen, slotStart + slotLen]
     : [
       slotStart,
       slotStart + FADE_IN_END * slotLen,
-      slotStart + fadeOutStart * slotLen,
+      slotStart + FADE_OUT_START * slotLen,
       slotStart + slotLen,
     ]
   const outputs = inOnly ? [1, 1, 0] : [0, 1, 1, 0]
@@ -207,10 +172,9 @@ function useFeatureBarOpacity(i: number, scrollYProgress: MotionValue<number>) {
 
 // --- Bar Y motion ---------------------------------------------------------
 //
-// Each feature bar enters from below (+50vh), rises to STICK_Y_VH (the same
-// "below logos" position the Phase 4 mockup uses for Online Booking), dwells
-// there, then exits upward through the logos to −50vh. Feature 0 is pre-
-// positioned at STICK_Y_VH at scroll 0 and stays there through the intro.
+// Continuous transit, no dwell:
+//   Feature 0  : STICK_Y_VH → −50 vh across its slot
+//   Features 1+: +50 vh    → −50 vh across their slot (crosses y=0 at midpoint)
 //
 // Returns a scalar MotionValue<number> in vh units (not a string). The caller
 // composes the final transform with useMotionTemplate so that `vh` resolves
@@ -220,34 +184,24 @@ function useFeatureBarY(i: number, scrollYProgress: MotionValue<number>): Motion
   const slotLen = 2 * halfSpan
   const slotStart = i === 0 ? introEnd : mid - halfSpan
   const enterY = i === 0 ? STICK_Y_VH : 50
-  const dwellEnd = i === 0 ? DWELL_END_FIRST : DWELL_END
   return useTransform(
     scrollYProgress,
-    piecewise(
-      [
-        slotStart,
-        slotStart + DWELL_START * slotLen,
-        slotStart + dwellEnd * slotLen,
-        slotStart + slotLen,
-      ],
-      [enterY, STICK_Y_VH, STICK_Y_VH, -50],
-    ),
+    piecewise([slotStart, slotStart + slotLen], [enterY, -50]),
   )
 }
 
 // --- Pill-crosses-logos timing -------------------------------------------
 //
-// During its exit phase (slot fraction [DWELL_END, 1]), a pill's y goes from
-// +STICK_Y_VH (below logos) to −50 vh (above viewport). It crosses y = 0
-// (the logos' resting line) at this fraction of the slot — that's the moment
-// the killing pill visually meets the competitor logo. The dying logo uses
-// this as its attach point so the hand-off is seamless (no snap).
-const EXIT_CROSS_FRAC = STICK_Y_VH / (STICK_Y_VH + 50)        // 15 / 65 ≈ 0.231
-const CROSS_SLOT_FRAC = DWELL_END + EXIT_CROSS_FRAC * (1 - DWELL_END)  // ≈ 0.808
-
-// Scroll progress where feature i's pill crosses the logo row (y = 0).
+// With continuous linear transit, pill i crosses y = 0 at the slot
+// midpoint — which is exactly `featureMeridian(i)`. Used by the dying-
+// logo glue so the logo is pre-lifted and attached at the moment the
+// killing pill arrives at y = 0.
+//
+// (Only non-zero i's ever call this — competitor `deathFeatureIndex`
+// values are all ≥ 3 in data.ts, so feature 0's slightly earlier crossing
+// point doesn't need a special case.)
 function pillCrossLogos(i: number): number {
-  return introEnd + (i + CROSS_SLOT_FRAC) * slot
+  return featureMeridian(i)
 }
 
 // --- Dying logo transform -------------------------------------------------
