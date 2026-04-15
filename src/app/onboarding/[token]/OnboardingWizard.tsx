@@ -44,6 +44,7 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [loadingDraft, setLoadingDraft] = useState(!initialDraft)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [saving, setSaving] = useState(false)
 
   const meta = STEP_META[step]
 
@@ -248,19 +249,22 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
                           Back
                         </button>
                       )}
-                      <button type="button" onClick={async () => {
+                      <button type="button" disabled={saving} onClick={async () => {
                           const errors = validateStep(step, draft as Record<string, unknown>)
                           if (errors) {
                             setFieldErrors(errors)
                             return
                           }
                           setFieldErrors({})
+                          setSaving(true)
                           await handleSaveDraft()
+                          setSaving(false)
                           advanceStep()
                         }}
-                        className="px-10 py-4 bg-[#1A3C2A] text-white text-sm font-bold rounded shadow-xl shadow-[#1A3C2A]/10 hover:opacity-90 transition-all flex items-center gap-2">
-                        <span>Save &amp; Continue</span>
-                        <Icon name="arrow" className="w-4 h-4" />
+                        className="px-10 py-4 bg-[#1A3C2A] text-white text-sm font-bold rounded shadow-xl shadow-[#1A3C2A]/10 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-60">
+                        {saving && <Icon name="spinner" className="w-4 h-4" />}
+                        <span>{saving ? 'Saving…' : 'Save & Continue'}</span>
+                        {!saving && <Icon name="arrow" className="w-4 h-4" />}
                       </button>
                     </div>
                   )}

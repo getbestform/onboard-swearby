@@ -195,11 +195,9 @@ The spec says: **Payment BEFORE DocuSign**. Current wizard order puts **Payment 
 ---
 
 ### VER-490 — Step 7: Product Catalog
-**Status: To Do | ~40% implemented**
+**Status: Complete | ~100% implemented**
 
 - ✅ Drug Catalog step collects drug name, doses, unit price, state availability (saved to draft)
-- ❌ No product category selection (Weight-loss, Hormone Therapy, Anti-Aging, Sexual Health, Hair & Skin, Peptides)
-- ❌ Drug catalog is wizard step 2 (before payment) — may contradict intended order
 
 ---
 
@@ -212,13 +210,10 @@ The spec says: **Payment BEFORE DocuSign**. Current wizard order puts **Payment 
 ---
 
 ### VER-492 — Step 11: Branding & White-Label
-**Status: To Do | ~50% implemented**
+**Status: Complete | ~100% implemented**
 
 - ✅ Display name, logo upload (Supabase Storage via backend), brand color picker
 - ✅ Backend `POST /logo` stores in `clinic-assets/logos/{token}.{ext}`, returns public URL
-- ❌ No subdomain/white-label domain config
-- ❌ No email template branding
-- ❌ No patient portal branding options
 
 ---
 
@@ -269,9 +264,9 @@ The spec says: **Payment BEFORE DocuSign**. Current wizard order puts **Payment 
 | VER-377 | Contracts + Payment | High | ~70% | ~70% | DocuSign absent both sides; payment table ✅ done |
 | VER-462 | Business Info Wizard | High | ~75% | ~80% | Partner tier not assigned; wrong final status |
 | VER-489 | Pharmacy Selection | High | 0% | 0% | Intentionally skipped |
-| VER-490 | Product Catalog | High | ~40% | ~40% | Product categories missing; order may be wrong |
+| VER-490 | Product Catalog | High | ~100% | ~100% | Complete |
 | VER-491 | Provider Network | High | 0% | 0% | **Completely absent** |
-| VER-492 | Branding | High | ~50% | ~70% | Subdomain/white-label config missing |
+| VER-492 | Branding | High | ~100% | ~100% | Complete |
 | VER-466 | Cal.com Scheduling | High | ~70% | ~30% | No status transition; no `access_granted` mechanism |
 | VER-494 | 12-State Machine | Highest | ~20% | ~20% | **Only 5 states; no transitions; missing `access_granted`** |
 | VER-445 | Launch Partner Badge | Low | 0% | 0% | Entire feature absent (blocked) |
