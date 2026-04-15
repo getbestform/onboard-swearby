@@ -1,11 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Phase1 } from './welcome/Phase1'
 import { Phase2 } from './welcome/Phase2'
 import { Phase3 } from './welcome/Phase3'
 import { FeatureCascade } from './cascade/FeatureCascade'
+
+// useLayoutEffect warns on SSR; fall back to useEffect so the bg snap is still
+// a no-op during server rendering but runs synchronously before paint on client.
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 type AnimState = 'idle' | 'exit-up' | 'exit-down' | 'enter-from-below' | 'enter-from-above'
 
@@ -91,15 +95,22 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete, initialPhase =
   const name   = ownerName ?? 'your partner'
   const isDark = phase <= 2
 
-  useEffect(() => {
+  // On first mount, snap the root/logo/footer to the target phase's colors
+  // with transition disabled — otherwise deep-linking to `?phase=cascade`
+  // shows the layout's SSR-green background animating to cream over 0.7s.
+  // Subsequent phase changes (1→2→3→4) use the smooth 0.7s fade as before.
+  const firstMountRef = useRef(true)
+  useIsoLayoutEffect(() => {
     const root       = document.getElementById('onboarding-root')
     const logo       = document.getElementById('onboarding-logo')
     const footerText = document.getElementById('onboarding-footer-text')
-    const TRANSITION = '0.7s ease'
+    const TRANSITION = firstMountRef.current ? 'none' : '0.7s ease'
 
     if (root)       { root.style.transition = `background-color ${TRANSITION}`; root.style.backgroundColor = BG[phase] }
     if (logo)       { logo.style.transition = `filter ${TRANSITION}`;           logo.style.filter = isDark ? 'brightness(0) invert(1)' : 'none' }
     if (footerText) { footerText.style.transition = `color ${TRANSITION}`;      footerText.style.color = isDark ? '' : 'rgba(38,60,48,0.45)' }
+
+    firstMountRef.current = false
 
     return () => {
       if (root)       root.style.backgroundColor = '#263C30'

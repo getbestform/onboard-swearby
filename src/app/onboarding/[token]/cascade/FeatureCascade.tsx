@@ -3,7 +3,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { motion, useScroll, useTransform, useMotionTemplate, type MotionValue } from 'motion/react'
 import { COMPETITORS, FEATURES, CORONATION_FEATURE_INDEX, COLORS, type Competitor } from './data'
-import { VictorScreen } from './VictorScreen'
 import { BookACallScreen } from './BookACallScreen'
 
 // useLayoutEffect warns on the server; swap to useEffect during SSR so the
@@ -47,14 +46,17 @@ function piecewise(inputs: number[], outputs: number[]): (v: number) => number {
 //                          Feature 0 stays parked at STICK_Y_VH the whole time.
 //   [introEnd, outroStart): main cascade — each feature gets one slot of
 //                          scroll distance and enters/dwells/exits.
-//   [outroStart, 1]      : outro dwell — Swearby alone with a gold line.
+//   [outroStart, 1]      : outro — starts as a brief dwell on Swearby alone,
+//                          then the Victor climax plays (crown drops, lines
+//                          transform, "They're built to take your money."
+//                          rises in). See CLIMAX_* constants below.
 //
 // Tune these to taste.
 const N = FEATURES.length
 const INTRO_VH = 45          // total intro budget (headline fade + line reveal)
 const INTRO_HEADLINE_FRAC = 0.55   // first 55 % = headline fade, rest = line reveal
 const SLOT_VH = 55          // scroll cost per feature
-const OUTRO_VH = 60          // scroll cost of outro dwell
+const OUTRO_VH = 150         // outro dwell + climax + end-frame hold
 const TOTAL_VH = INTRO_VH + N * SLOT_VH + OUTRO_VH
 
 const introEnd = INTRO_VH / TOTAL_VH
@@ -62,6 +64,29 @@ const headlineFadeEnd = introEnd * INTRO_HEADLINE_FRAC
 const outroStart = (INTRO_VH + N * SLOT_VH) / TOTAL_VH
 const slot = SLOT_VH / TOTAL_VH
 const halfSpan = slot / 2
+
+// --- Outro climax sub-phases ---------------------------------------------
+//
+// Fractions of the outro span at which each climax phase ends. The outro
+// starts with a brief dwell, then plays the victor sequence, then holds.
+//
+//   [outroStart,      climaxDwellEnd] : hold the cascade end-state briefly
+//   [climaxDwellEnd,  climaxCrownEnd] : crown drops in, above-line fades out
+//   [climaxCrownEnd,  climaxLineEnd]  : below-line cross-fades dotted→solid
+//                                        and its mask shrinks to a short
+//                                        gold→cream gradient line
+//   [climaxLineEnd,   climaxTextEnd]  : headline fades in + rises
+//   [climaxTextEnd,   1]              : hold the end frame so the user can
+//                                        read before scrolling to book-a-call
+const CLIMAX_DWELL_FRAC = 0.08
+const CLIMAX_CROWN_FRAC = 0.32
+const CLIMAX_LINE_FRAC = 0.55
+const CLIMAX_TEXT_FRAC = 0.82
+const outroSpan = 1 - outroStart
+const climaxDwellEnd = outroStart + CLIMAX_DWELL_FRAC * outroSpan
+const climaxCrownEnd = outroStart + CLIMAX_CROWN_FRAC * outroSpan
+const climaxLineEnd = outroStart + CLIMAX_LINE_FRAC * outroSpan
+const climaxTextEnd = outroStart + CLIMAX_TEXT_FRAC * outroSpan
 
 // Feature i is at the **centre of its slot** at this scroll progress. With
 // the new stick-below-logos model the pill is NOT actually at y=0 here — it's
@@ -121,9 +146,11 @@ const STICK_Y_VH = 15
 //   [ DWELL_START, DWELL_END ]  : dwell — bar sits at meridian
 //   [ DWELL_END, 100 % ]  : exit  — bar slides from meridian up to −50vh
 //
-// The opacity curve wraps those: fade-in finishes just before the dwell, and
-// fade-out starts exactly as the dwell ends. That way the bar lingers at
-// full opacity the whole time it's parked over the logos.
+// The opacity curve wraps those: fade-in finishes just before the dwell,
+// full opacity is held through the dwell AND the first part of exit (while
+// the pill is rising across the logo row), and fade-out only begins once the
+// pill has visibly cleared the logos. That way the label is at full read
+// while it's overlapping the logo — the exact moment it matters most.
 //
 // DWELL_END is relatively early (0.55) so the exit phase gets ~45% of the
 // slot — enough scroll distance that the pill reads as rising rather than
@@ -131,6 +158,14 @@ const STICK_Y_VH = 15
 const DWELL_START = 0.25
 const DWELL_END = 0.55
 const FADE_IN_END = 0.20    // opacity reaches 1 just before the dwell starts
+
+// Fraction into the exit phase at which fade-out begins. The pill crosses
+// the logo row (y=0) at EXIT_CROSS_FRAC ≈ 0.23 of exit; we hold full opacity
+// past that — around 0.4 of exit the pill is at y ≈ -11vh, visibly clear of
+// the logos — then fade to 0 across the rest of the exit. Earlier values
+// start the fade while the label still overlaps the logos, which reads as
+// "vanishing too soon".
+const EXIT_FADE_FRAC = 0.4
 
 // Feature 0 is already parked at STICK_Y_VH throughout the intro — the user
 // has been looking at it the whole time the lines draw in, so there's nothing
@@ -150,12 +185,20 @@ function useFeatureBarOpacity(i: number, scrollYProgress: MotionValue<number>) {
   const slotStart = mid - halfSpan
   const inOnly = i === 0
   const dwellEnd = inOnly ? DWELL_END_FIRST : DWELL_END
+  // Fade begins partway into the exit phase so the pill stays solid while
+  // it's passing through the logos. In slot-fraction terms:
+  //   fadeOutStart = dwellEnd + EXIT_FADE_FRAC * (1 - dwellEnd)
+  // The parameterisation in *exit fraction* (not slot fraction) keeps the
+  // effective pill-y at fade-start the same across features — feature 0's
+  // exit spans 0.9 of its slot while others span 0.45, but both fade from
+  // the same point in space.
+  const fadeOutStart = dwellEnd + EXIT_FADE_FRAC * (1 - dwellEnd)
   const inputs = inOnly
-    ? [0, slotStart + dwellEnd * slotLen, slotStart + slotLen]
+    ? [0, slotStart + fadeOutStart * slotLen, slotStart + slotLen]
     : [
       slotStart,
       slotStart + FADE_IN_END * slotLen,
-      slotStart + dwellEnd * slotLen,
+      slotStart + fadeOutStart * slotLen,
       slotStart + slotLen,
     ]
   const outputs = inOnly ? [1, 1, 0] : [0, 1, 1, 0]
@@ -293,6 +336,134 @@ function useSwearbyLineGoldOpacity(scrollYProgress: MotionValue<number>) {
   return useTransform(scrollYProgress, piecewise([start, start + halfSpan], [0, 1]))
 }
 
+// --- Outro climax hooks ---------------------------------------------------
+//
+// After the last feature exits, the outro plays the victor moment:
+//   1. Crown drops from above and lands just above the Swearby logo.
+//   2. The above-logo line (and Swearby gold overlay) fade out.
+//   3. The below-logo dotted line cross-fades to solid while its mask
+//      shrinks — so the full-height cascade line "becomes a normal line
+//      and animates to a faded, short line" (gold at top, fading to cream
+//      at the bottom — matches the VictorScreen gradient).
+//   4. "They're built to take your money." headline fades in + rises from
+//      below the short line.
+// Each hook below drives one of those transitions across a sub-phase of
+// the outro (see CLIMAX_* constants at the top of the file).
+
+// Crown resting position: centered horizontally on the Swearby column
+// (column index 3, the middle of 7 → viewport center), and 73 px above
+// the viewport's vertical center, which places the crown's bottom edge
+// a few px above the top of the logo (logo is 96 px tall, centered at
+// viewport 50% — top of logo is at 50% − 48 px).
+const CROWN_REST_PX = -73
+// Start the crown well above the viewport top so the descent feels like
+// it comes from above the sticky section. The sticky div's overflow-hidden
+// clips anything out of bounds, so a coarse value is safe.
+const CROWN_START_PX = -500
+
+function useCrownY(scrollYProgress: MotionValue<number>) {
+  return useTransform(
+    scrollYProgress,
+    piecewise([climaxDwellEnd, climaxCrownEnd], [CROWN_START_PX, CROWN_REST_PX]),
+  )
+}
+function useCrownOpacity(scrollYProgress: MotionValue<number>) {
+  // Fade in over the first 40 % of the crown phase so the crown doesn't
+  // pop in; the descent continues past full opacity.
+  const fadeEnd = climaxDwellEnd + 0.4 * (climaxCrownEnd - climaxDwellEnd)
+  return useTransform(
+    scrollYProgress,
+    piecewise([climaxDwellEnd, fadeEnd, climaxCrownEnd], [0, 1, 1]),
+  )
+}
+
+// Above-logo line fade during the outro. Applied to every column's above
+// line AND to Swearby's gold overlay. Non-Swearby columns are already at
+// opacity 0 by this scroll position (their useLineOpacity went 1→0 at the
+// death slot) so the multiply is a no-op there.
+function useOutroAboveFade(scrollYProgress: MotionValue<number>) {
+  return useTransform(
+    scrollYProgress,
+    piecewise([climaxDwellEnd, climaxCrownEnd], [1, 0]),
+  )
+}
+
+// Below-line dotted → solid cross-fade during the outro. The existing
+// belowLineSolidOpacity/belowLineDottedOpacity motion values are locked to
+// their post-intro values (0 and 1 respectively) from introEnd onward, so
+// these two hooks overlay fresh fades on top in the outro window.
+function useOutroDottedFade(scrollYProgress: MotionValue<number>) {
+  return useTransform(
+    scrollYProgress,
+    piecewise([climaxCrownEnd, climaxLineEnd], [1, 0]),
+  )
+}
+function useOutroSolidRevive(scrollYProgress: MotionValue<number>) {
+  return useTransform(
+    scrollYProgress,
+    piecewise([climaxCrownEnd, climaxLineEnd], [0, 1]),
+  )
+}
+
+// Animated mask for the below-logo solid line.
+//
+// The intro's static mask is equivalent to
+//   linear-gradient(to bottom, black 0%, black 78%, transparent 100%)
+// (visible top 78 %, fade over the bottom 22 %). During the outro the stops
+// animate in to shrink the visible region into a short gold→cream gradient:
+//   linear-gradient(to bottom, black 0%, black 25%, transparent 55%)
+// (visible top 25 %, fade 25–55 %, transparent below).
+//
+// Because the line's background is solid gold and the page background is
+// cream, the faded-out bottom reads as a gold-to-cream gradient — no
+// separate gradient background needed. The mask's percentage stops
+// interpolate continuously, so the line appears to "shrink from the bottom
+// up" with a soft moving fade zone.
+const BELOW_MASK_BLACK_START = 78
+const BELOW_MASK_BLACK_END = 25
+const BELOW_MASK_TRANSPARENT_START = 100
+const BELOW_MASK_TRANSPARENT_END = 55
+function useOutroBelowMask(scrollYProgress: MotionValue<number>): MotionValue<string> {
+  const blackStop = useTransform(
+    scrollYProgress,
+    piecewise(
+      [climaxCrownEnd, climaxLineEnd],
+      [BELOW_MASK_BLACK_START, BELOW_MASK_BLACK_END],
+    ),
+  )
+  const transparentStop = useTransform(
+    scrollYProgress,
+    piecewise(
+      [climaxCrownEnd, climaxLineEnd],
+      [BELOW_MASK_TRANSPARENT_START, BELOW_MASK_TRANSPARENT_END],
+    ),
+  )
+  return useMotionTemplate`linear-gradient(to bottom, black 0%, black ${blackStop}%, transparent ${transparentStop}%)`
+}
+
+// Headline fade-in + rise for "They're built to take your money."
+function useOutroHeadlineOpacity(scrollYProgress: MotionValue<number>) {
+  return useTransform(
+    scrollYProgress,
+    piecewise([climaxLineEnd, climaxTextEnd], [0, 1]),
+  )
+}
+function useOutroHeadlineY(scrollYProgress: MotionValue<number>) {
+  return useTransform(
+    scrollYProgress,
+    piecewise([climaxLineEnd, climaxTextEnd], [32, 0]),
+  )
+}
+
+// Scroll-down hint fades out as the victor climax begins — the end frame
+// is meant to hold quietly on the headline without competing scroll cues.
+function useOutroScrollHintOpacity(scrollYProgress: MotionValue<number>) {
+  return useTransform(
+    scrollYProgress,
+    piecewise([climaxDwellEnd, climaxCrownEnd], [1, 0]),
+  )
+}
+
 // ==========================================================================
 // Components
 // ==========================================================================
@@ -342,6 +513,10 @@ function LineColumn({
   aboveLineScaleY,
   belowLineSolidOpacity,
   belowLineDottedOpacity,
+  outroAboveFade,
+  outroDottedFade,
+  outroSolidRevive,
+  outroBelowMask,
 }: {
   competitor: Competitor
   scrollYProgress: MotionValue<number>
@@ -349,17 +524,44 @@ function LineColumn({
   aboveLineScaleY: MotionValue<number>
   belowLineSolidOpacity: MotionValue<number>
   belowLineDottedOpacity: MotionValue<number>
+  outroAboveFade: MotionValue<number>
+  outroDottedFade: MotionValue<number>
+  outroSolidRevive: MotionValue<number>
+  outroBelowMask: MotionValue<string>
 }) {
   const lineOpacity = useLineOpacity(competitor, scrollYProgress)
+  // Per-element opacities compose three factors:
+  //   (1) lineOpacity — kills the whole column after its competitor dies
+  //       (Swearby stays at 1 throughout).
+  //   (2) the intro motion value for that element (aboveLineScaleY is on
+  //       scaleY, not opacity, so only the two below-line values apply here).
+  //   (3) the outro fade for that element.
+  // Non-Swearby columns end up at 0 for every element in the outro window
+  // because lineOpacity is already 0 — the outro fades are no-ops for them.
+  const aboveOpacity = useTransform(
+    [lineOpacity, outroAboveFade],
+    ([l, o]: number[]) => l * o,
+  )
+  const goldOpacity = useTransform(
+    [lineOpacity, swearbyGoldOpacity, outroAboveFade],
+    ([l, g, o]: number[]) => l * g * o,
+  )
+  const belowDottedOp = useTransform(
+    [lineOpacity, belowLineDottedOpacity, outroDottedFade],
+    ([l, d, o]: number[]) => l * d * o,
+  )
+  // Below-solid: intro fades it out (1→0), outro revives it (0→1). Take the
+  // max so whichever phase is active wins — they never overlap.
+  const belowSolidOp = useTransform(
+    [lineOpacity, belowLineSolidOpacity, outroSolidRevive],
+    ([l, s, r]: number[]) => l * Math.max(s, r),
+  )
   return (
     <div className="flex-1 relative h-full">
-      <motion.div
-        className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-[1.5px]"
-        style={{ opacity: lineOpacity }}
-      >
+      <div className="absolute left-1/2 top-0 bottom-0 -translate-x-1/2 w-[1.5px]">
         {/* Above-logo: solid gold, faded at the top. Scales from 0→1 during
             the intro anchored at the bottom edge — reads as the line being
-            pulled out of the top of the logo. */}
+            pulled out of the top of the logo. Fades out during outro. */}
         <motion.div
           className="absolute left-0 w-[1.5px]"
           style={{
@@ -370,23 +572,27 @@ function LineColumn({
             maskImage: 'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
             scaleY: aboveLineScaleY,
             transformOrigin: 'bottom',
+            opacity: aboveOpacity,
           }}
         />
         {/* Below-logo SOLID — the Phase 4 first-frame look. Fades out as the
-            dotted overlay fades in during the intro. */}
+            dotted overlay fades in during the intro, then REVIVES in the
+            outro with an animated mask that shrinks the visible region into
+            a short gold→cream gradient (the victor line). */}
         <motion.div
           className="absolute left-0 w-[1.5px]"
           style={{
             top: `calc(50% + ${LOGO_HALF_GAP}px)`,
             bottom: 0,
             background: COLORS.gold,
-            WebkitMaskImage: 'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
-            maskImage: 'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
-            opacity: belowLineSolidOpacity,
+            WebkitMaskImage: outroBelowMask,
+            maskImage: outroBelowMask,
+            opacity: belowSolidOp,
           }}
         />
-        {/* Below-logo DOTTED — the permanent cascade look. Fades in during
-            the intro on top of the solid. */}
+        {/* Below-logo DOTTED — the cascade look. Fades in during the intro
+            on top of the solid, fades back out in the outro to hand off to
+            the revived (but now shrinking) solid. */}
         <motion.div
           className="absolute left-0 w-[1.5px]"
           style={{
@@ -397,24 +603,25 @@ function LineColumn({
             backgroundRepeat: 'repeat-y',
             WebkitMaskImage: 'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
             maskImage: 'linear-gradient(to top, transparent 0%, black 22%, black 100%)',
-            opacity: belowLineDottedOpacity,
+            opacity: belowDottedOp,
           }}
         />
-        {/* Swearby gold overlay — fully opaque gold after coronation */}
+        {/* Swearby gold overlay — fully opaque gold after coronation, fades
+            out with the rest of the above-line during outro. */}
         {competitor.isSwearby && (
           <motion.div
             className="absolute left-0 w-[1.5px]"
             style={{
               top: 0,
               bottom: `calc(50% + ${LOGO_HALF_GAP}px)`,
-              opacity: swearbyGoldOpacity,
+              opacity: goldOpacity,
               background: COLORS.gold,
               WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
               maskImage: 'linear-gradient(to bottom, transparent 0%, black 22%, black 100%)',
             }}
           />
         )}
-      </motion.div>
+      </div>
     </div>
   )
 }
@@ -465,6 +672,24 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
   const aboveLineScaleY = useAboveLineScaleY(scrollYProgress)
   const belowLineSolidOpacity = useBelowLineSolidOpacity(scrollYProgress)
   const belowLineDottedOpacity = useBelowLineDottedOpacity(scrollYProgress)
+
+  // Outro climax motion values — shared across all line columns and also
+  // drive the crown + headline elements below.
+  const outroAboveFade = useOutroAboveFade(scrollYProgress)
+  const outroDottedFade = useOutroDottedFade(scrollYProgress)
+  const outroSolidRevive = useOutroSolidRevive(scrollYProgress)
+  const outroBelowMask = useOutroBelowMask(scrollYProgress)
+  const crownY = useCrownY(scrollYProgress)
+  const crownOpacity = useCrownOpacity(scrollYProgress)
+  const outroHeadlineOpacity = useOutroHeadlineOpacity(scrollYProgress)
+  const outroHeadlineY = useOutroHeadlineY(scrollYProgress)
+  const outroScrollHintOpacity = useOutroScrollHintOpacity(scrollYProgress)
+  // Composed transforms — same pattern as FeatureBar (see gotcha #2 in the
+  // architecture memory: motion's `y` shorthand mishandles mixed units, so
+  // compose explicitly via useMotionTemplate).
+  const crownTransform = useMotionTemplate`translate(-50%, calc(-50% + ${crownY}px))`
+  const headlineTransform = useMotionTemplate`translateY(${outroHeadlineY}px)`
+
   const guestName = ownerName ?? 'your partner'
 
   // `position: sticky` dies inside any ancestor with `overflow: hidden`,
@@ -473,9 +698,11 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
   // ancestor of the cascade section and force overflow/overflow-x/overflow-y
   // to `visible` (with !important so Tailwind utility classes can't beat us).
   //
-  // We also hide the layout header/footer so the sticky section starts flush
-  // with the viewport top — otherwise the page scrolls "normally" for ~70 px
-  // before the animation begins.
+  // We used to also force-hide the layout header/footer so the sticky section
+  // started flush with the viewport top — we've since put the Swearby branding
+  // back in the page header, so the header stays visible and the page scrolls
+  // "normally" for ~70px before the intro animation engages. That's fine;
+  // piecewise clamps so nothing animates during that pre-roll.
   //
   // Restored on unmount.
   useIsoLayoutEffect(() => {
@@ -506,13 +733,6 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
         if (cur === document.documentElement) break
         cur = cur.parentElement
       }
-    }
-
-    const root = document.getElementById('onboarding-root')
-    if (root) {
-      root.querySelectorAll<HTMLElement>(':scope > header, :scope > footer').forEach(el => {
-        pushOverride(el, 'display', 'none')
-      })
     }
 
     return () => {
@@ -548,17 +768,13 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
 
           {/* Headline — sits near the top of the viewport. Absolute so it
               doesn't shift the meridian; the meridian is pinned to the
-              viewport center regardless of headline height. */}
+              viewport center regardless of headline height. The "Swearby"
+              wordmark that used to sit above the headline has been removed —
+              the layout's page-level header handles that branding. */}
           <div
             className="absolute inset-x-0 z-10 px-6 text-center"
             style={{ top: 'clamp(56px, 7vh, 96px)' }}
           >
-            <h2
-              className="font-serif text-[#263C30]"
-              style={{ fontFamily: 'serif', fontSize: 22, fontWeight: 500 }}
-            >
-              Swearby
-            </h2>
             <motion.h1
               className="mt-8 font-sans"
               style={{
@@ -594,6 +810,10 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
                 aboveLineScaleY={aboveLineScaleY}
                 belowLineSolidOpacity={belowLineSolidOpacity}
                 belowLineDottedOpacity={belowLineDottedOpacity}
+                outroAboveFade={outroAboveFade}
+                outroDottedFade={outroDottedFade}
+                outroSolidRevive={outroSolidRevive}
+                outroBelowMask={outroBelowMask}
               />
             ))}
           </div>
@@ -629,10 +849,59 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
             ))}
           </div>
 
-          {/* Scroll-down hint — anchored to viewport bottom */}
-          <div
+          {/* Victor crown — drops in from above the viewport and lands just
+              above the Swearby logo (Swearby is the middle column of 7, so
+              left:50 % lines it up with the logo). */}
+          <motion.div
+            className="absolute left-1/2 z-30 pointer-events-none"
+            style={{
+              top: '50%',
+              transform: crownTransform,
+              opacity: crownOpacity,
+            }}
+          >
+            <svg width="40" height="30" viewBox="0 0 40 30" fill="none" aria-hidden="true">
+              <path
+                d="M30.16 13.28L20 0L9.84 13.28L4.16 9.7L2.28 11.04L5.1 25.4L6.33 26.42H33.66L34.89 25.4L37.72 11.04L35.84 9.7L30.16 13.28Z"
+                fill={COLORS.gold}
+              />
+            </svg>
+          </motion.div>
+
+          {/* Victor headline — "They're built to take your money."
+              Anchored a fixed px distance below the viewport center (below
+              the logo + its LOGO_HALF_GAP + the 74 px shrunk line + some
+              breathing room) so it sits consistently across viewport heights.
+              Fades + rises in during the final outro phase. */}
+          <motion.div
+            className="absolute inset-x-0 z-10 px-6 text-center pointer-events-none"
+            style={{
+              top: `calc(50% + ${LOGO_HALF_GAP + 74 + 28}px)`,
+              opacity: outroHeadlineOpacity,
+              transform: headlineTransform,
+            }}
+          >
+            <h2
+              className="font-sans mx-auto"
+              style={{
+                fontSize: 'clamp(1.75rem, 7vw, 2.25rem)',
+                fontWeight: 700,
+                lineHeight: 1.18,
+                color: COLORS.ink,
+                letterSpacing: '-0.01em',
+                maxWidth: 340,
+              }}
+            >
+              They&apos;re built to take your money.
+            </h2>
+          </motion.div>
+
+          {/* Scroll-down hint — anchored to viewport bottom. Fades out
+              during the victor climax so the end frame holds quietly on
+              the headline. */}
+          <motion.div
             className="absolute inset-x-0 z-10 flex flex-col items-center gap-2 pointer-events-none"
-            style={{ bottom: 'clamp(24px, 4vh, 48px)' }}
+            style={{ bottom: 'clamp(24px, 4vh, 48px)', opacity: outroScrollHintOpacity }}
           >
             <style>{`@keyframes slide-down { 0%,100% { transform:translateY(0) } 50% { transform:translateY(5px) } }`}</style>
             <span className="text-[12px] tracking-[0.2em]" style={{ color: 'rgba(53, 51, 49, 1)' }}>
@@ -652,12 +921,9 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
                 <path d="M17.2151 50.0965L7.94727 40.8285L9.10179 39.6741L17.2151 47.7874L25.3286 39.6741L26.4831 40.8285L17.2151 50.0965Z" fill="rgba(53, 51, 49, 1)" />
               </g>
             </svg>
-          </div>
+          </motion.div>
         </div>
       </section>
-
-      {/* Victor — "They're built to take your money." */}
-      <VictorScreen />
 
       {/* Book a call — "We're built to make you money." */}
       <BookACallScreen guestName={guestName} />
