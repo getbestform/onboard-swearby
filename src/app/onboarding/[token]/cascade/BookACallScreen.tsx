@@ -27,14 +27,6 @@ export function BookACallScreen({ guestName }: { guestName: string }) {
 
       <div className="relative z-10 flex flex-col items-center text-center">
 
-        {/* Swearby wordmark */}
-        <img
-          src="/swearby-logo.svg"
-          alt="Swearby"
-          className="mx-auto"
-          style={{ height: 22, width: 'auto' }}
-        />
-
         {/* Positive headline */}
         <h1
           className="mt-14 font-sans"
@@ -104,7 +96,7 @@ export function BookACallScreen({ guestName }: { guestName: string }) {
         <div
           className="mt-8 w-full max-w-md"
           style={{
-            height: 480,
+            height: 380,
             background: '#D3D3D3',
             borderRadius: 4,
           }}

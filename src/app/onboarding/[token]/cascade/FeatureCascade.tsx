@@ -782,7 +782,7 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
               style={{ height: 22, width: 'auto' }}
             />
             <motion.h1
-              className="mt-8 font-sans"
+              className="mt-24 font-sans"
               style={{
                 fontSize: 'clamp(2.25rem, 10.5vw, 2.5rem)',
                 fontWeight: 500,
