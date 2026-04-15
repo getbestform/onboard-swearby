@@ -69,7 +69,7 @@ export function ContractsStep({
 
     // Listen for the return-page popup posting a completion message
     function onMessage(e: MessageEvent) {
-      if (e.data?.type !== 'docusign-complete') return
+      if (e.origin !== window.location.origin || e.data?.type !== 'docusign-complete') return
       setSigning(null)
       if (e.data.event === 'signing_complete') {
         // Webhook may not have fired yet — poll until the DB catches up
