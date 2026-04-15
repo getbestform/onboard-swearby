@@ -31,54 +31,23 @@ export function VictorScreen() {
         padding: '60px 24px 40px',
       }}
     >
-      {/* Botanical decoration — top-right */}
-      <svg
-        className="absolute pointer-events-none"
-        style={{ top: 60, right: -40, width: 180, height: 180, opacity: 0.2 }}
-        viewBox="0 0 200 200"
-        fill="none"
-      >
-        <path
-          d="M200 20C200 20 180 130 50 160"
-          stroke={COLORS.gold}
-          strokeWidth="0.76"
-          strokeLinecap="round"
-        />
-        <path
-          d="M170 40C160 50 148 65 145 80M150 35L160 70"
-          stroke={COLORS.gold}
-          strokeWidth="0.76"
-          strokeLinecap="round"
-        />
-      </svg>
+      {/* Botanical decoration — top-left */}
+      <div className="absolute pointer-events-none select-none top-[65px] left-[-15px] w-[200px] h-[175px] z-0">
+        <img src="/wlc-leaf.svg" alt="" className="w-full h-full" />
+      </div>
 
       {/* Botanical decoration — bottom-left */}
-      <svg
-        className="absolute pointer-events-none"
-        style={{ bottom: 40, left: -40, width: 180, height: 180, opacity: 0.2 }}
-        viewBox="0 0 200 200"
-        fill="none"
-      >
-        <path
-          d="M0 180C0 180 20 70 150 40"
-          stroke={COLORS.gold}
-          strokeWidth="0.76"
-          strokeLinecap="round"
-        />
-      </svg>
+      <div className="absolute pointer-events-none select-none bottom-[65px] right-[-15px] w-[200px] h-[175px] z-0">
+        <img src="/wlc-leaf-down.svg" alt="" className="w-full h-full" />
+      </div>
 
       {/* Swearby wordmark */}
-      <h2
-        className="font-serif relative z-10"
-        style={{
-          color: COLORS.green,
-          fontSize: 22,
-          fontWeight: 500,
-          fontStyle: 'italic',
-        }}
-      >
-        Swearby
-      </h2>
+      <img
+        src="/swearby-logo.svg"
+        alt="Swearby"
+        className="relative z-10 mx-auto"
+        style={{ height: 22, width: 'auto' }}
+      />
 
       {/* Crown / trophy icon — drops onto the Swearby wordmark */}
       <motion.svg
