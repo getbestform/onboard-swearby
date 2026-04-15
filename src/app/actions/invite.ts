@@ -329,6 +329,27 @@ export async function denyInvite(
   }
 }
 
+export async function markCallScheduled(
+  token: string,
+): Promise<{ success: true } | { error: string }> {
+  if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
+    return { error: 'Server misconfiguration.' }
+  }
+  const url = `${process.env.VERTI_API_URL}/api/partner-invites/${token}/schedule`
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return { error: data?.error ?? 'Failed to mark call as scheduled.' }
+    return { success: true }
+  } catch (err) {
+    console.error('[markCallScheduled] fetch failed:', url, (err as Error)?.message)
+    return { error: 'Network error. Please try again.' }
+  }
+}
+
 export async function uploadClinicLogo(
   token: string,
   formData: FormData,

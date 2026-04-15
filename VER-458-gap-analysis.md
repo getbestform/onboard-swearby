@@ -2,7 +2,7 @@
 
 **Epic:** LAUNCH PORTAL (CLINIC ONBOARDING)
 **URL:** https://getbestform.atlassian.net/browse/VER-458
-**Date:** 2026-04-14
+**Date:** 2026-04-15
 **Frontend branch:** `feature/client-onboard` (onboard-swearby)
 **Backend branch:** `feature/VER-ticket1-partner-clinic-invite` (verti-v2) — not yet merged to main
 
@@ -93,9 +93,7 @@ logo_url            TEXT
 | POST | `/api/partner-invites/{token}/agreements/:type/sign` | Create DocuSign embedded envelope | VER-377 |
 | POST | `/api/partner-invites/{token}/agreements/callback` | DocuSign webhook — update signing status | VER-377 |
 | GET | `/api/partner-invites/{token}/agreements` | List agreements + signing status | VER-377 |
-| POST | `/api/partner-invites/{token}/payment` | Create Stripe PaymentIntent | VER-377 |
-| POST | `/api/partner-invites/{token}/payment/confirm` | Confirm payment success | VER-377 |
-| PATCH | `/api/partner-invites/{token}/status` | Drive state machine transitions | VER-494 |
+| PATCH | `/api/partner-invites/{token}/status` | Generic state machine transition endpoint | VER-494 |
 
 ### DB Tables — Missing ❌
 
@@ -108,22 +106,13 @@ docusign_envelope_id TEXT
 status              ENUM  pending | signed
 signed_at           TIMESTAMPTZ
 
--- onboarding_payments (VER-377)
-id                       UUID
-invite_id                UUID  FK → clinic_invite
-stripe_payment_intent_id TEXT
-amount_cents             INTEGER
-method                   ENUM  card | ach
-status                   ENUM  pending | succeeded | failed
-paid_at                  TIMESTAMPTZ
-
 -- clinic_account additions (VER-445)
 partner_tier             TEXT     launch_partner | partner
 partner_number           INTEGER  1–200 for launch partners
 partner_tier_assigned_at TIMESTAMPTZ
 
 -- clinic_invite additions (VER-494)
-access_granted           BOOLEAN  DEFAULT false — admin flips after onboarding call
+-- call_scheduled (and other intermediate states) need to be valid values in status column
 ```
 
 ---
@@ -138,7 +127,8 @@ access_granted           BOOLEAN  DEFAULT false — admin flips after onboarding
 - ✅ `verti_admin` acts as the sales rep — no separate role needed; any Verti admin can close a deal and send an invite
 - ✅ Admin can input email, name, entity name/type and send invite
 - ✅ Backend generates UUID token + 5-digit code, sends branded email
-- ✅ Invite table with status badges, approve/deny actions, pagination, search/filter
+- ✅ Invite table with status badges, pagination, search/filter, and `call_scheduled` in status filter
+- ✅ "Activate Portal" button shown for `call_scheduled` invites (creates clinic + Supabase user); "Awaiting call" shown for `completed`; Deny available at both stages
 - ✅ Backend `approve` endpoint creates `clinic` record from draft + invite data
 - ✅ Password is collected from the clinic owner during onboarding (VER-423) — invite email sends the access code; password is set by the owner themselves in the wizard
 - ✅ `POST /approve` reads `accountPassword` from draft, calls `supabaseAdmin.auth.admin.createUser()` with `email_confirm: true`, sets `clinic_admin` role in `user_metadata`, and rolls back the auth user if the clinic DB insert fails
@@ -153,7 +143,7 @@ access_granted           BOOLEAN  DEFAULT false — admin flips after onboarding
 - ✅ Password setup form implemented (`steps/PasswordForm.tsx`) — locked email, password + confirm fields with show/hide toggle, live requirements checklist (12 chars, uppercase, number, special char), ToS + Privacy Policy checkboxes
 - ✅ Password and agreement flags (`tosAccepted`, `privacyAccepted`) saved to draft via `PATCH /draft` so admin can use `accountPassword` to create the Supabase user on approval
 - ✅ Full client-side validation (match check, all requirements, both checkboxes) before saving
-- ✅ Step sits between Schedule Call and Review in the wizard (step 6 of 8)
+- ✅ Step is first in the wizard (step 0 — Account), immediately after the welcome/verify flow
 - ✅ Backend: `POST /approve` now reads `accountPassword` from draft, calls `supabaseAdmin.auth.admin.createUser()` with `email_confirm: true` (skipping re-verification since they already verified via access code), sets `clinic_admin` role in `user_metadata`, and rolls back the auth user if the clinic DB insert fails.
 
 ---
@@ -181,6 +171,8 @@ The spec says: **Payment BEFORE DocuSign**. Current wizard order puts **Payment 
 - ✅ `PATCH /draft` saves progress server-side (backend done, shallow-merge upsert)
 - ✅ `POST /submit` atomically transitions pending→completed (backend done)
 - ✅ `POST /approve` creates clinic record from draft data (backend done)
+- ✅ Step validation schema mapping fixed — `validateStep()` now correctly maps steps 2–5 after PasswordForm was inserted at step 0
+- ✅ Save & Continue button disables and shows spinner while draft is saving
 - ❌ `assign_partner_tier()` not called on submit — `partner_tier`/`partner_number` columns don't exist yet (blocked by VER-445)
 - ❌ Submission sets status to `completed`, not `pending_review` — spec expects `pending_review` as an intermediate state before admin approval
 
@@ -218,14 +210,15 @@ The spec says: **Payment BEFORE DocuSign**. Current wizard order puts **Payment 
 ---
 
 ### VER-466 — Step 12: Go-Live Call Scheduling (Cal.com)
-**Status: To Do | ~70% implemented**
+**Status: Complete | ~100% implemented**
 
 - ✅ Cal.com embed via `@calcom/embed-react`, captures `bookingUid` + `startTime`
 - ✅ Booking data saved to draft via `PATCH /draft`
-- ❌ No explicit `PATCH /status` call to set invite status to `call_scheduled` after booking
-- ❌ `access_granted` column doesn't exist in backend schema — admin has no mechanism to flip it post-call
-- ❌ No post-booking confirmation screen ("Your portal will be activated after the call")
-- ❌ Admin panel has no "Activate Portal" action (only approve/deny exists)
+- ✅ Post-booking confirmation screen with portal activation message ("portal will be activated after the call")
+- ✅ Admin panel shows "Activate Portal" button (creates clinic + Supabase auth user from draft) for `call_scheduled` invites; "Awaiting call" label for `completed` invites
+- ✅ `POST /api/partner-invites/{token}/schedule` created in verti-v2 — atomically transitions `completed → call_scheduled`; idempotent if already in that state
+- ✅ `onBooked` callback in `OnboardingWizard.tsx` now calls `markCallScheduled(token)` after a successful Cal.com booking (fire-and-forget — non-blocking so a transient error doesn't break the confirmation screen)
+- ✅ `access_granted` as a separate concept is not needed — "Activate Portal" (`POST /approve`) is the access grant mechanism; it creates the clinic record + Supabase auth user and sets status to `approved`
 
 ---
 
@@ -240,7 +233,7 @@ The spec says: **Payment BEFORE DocuSign**. Current wizard order puts **Payment 
     → call_scheduled → access_granted
   ```
 - ❌ No state transition endpoint or guards — wizard doesn't enforce step ordering via invite status
-- ❌ `access_granted` column missing from schema entirely
+- ✅ `access_granted` handled via `approved` status — no separate column needed
 
 ---
 
@@ -267,7 +260,7 @@ The spec says: **Payment BEFORE DocuSign**. Current wizard order puts **Payment 
 | VER-490 | Product Catalog | High | ~100% | ~100% | Complete |
 | VER-491 | Provider Network | High | 0% | 0% | **Completely absent** |
 | VER-492 | Branding | High | ~100% | ~100% | Complete |
-| VER-466 | Cal.com Scheduling | High | ~70% | ~30% | No status transition; no `access_granted` mechanism |
+| VER-466 | Cal.com Scheduling | High | ~100% | ~100% | Complete |
 | VER-494 | 12-State Machine | Highest | ~20% | ~20% | **Only 5 states; no transitions; missing `access_granted`** |
 | VER-445 | Launch Partner Badge | Low | 0% | 0% | Entire feature absent (blocked) |
 
@@ -275,8 +268,9 @@ The spec says: **Payment BEFORE DocuSign**. Current wizard order puts **Payment 
 
 ## Critical Path Blockers (in order)
 
-1. **VER-494 (state machine)** — Merge `feature/VER-ticket1-partner-clinic-invite` to main first; then extend `clinic_invite.status` with all intermediate states and add a transition endpoint
-2. **VER-423 (password → Supabase user)** — ✅ Complete. Frontend form collects and saves password; `POST /approve` in verti-v2 now calls `supabaseAdmin.auth.admin.createUser()` with rollback on failure.
-3. **VER-377 (DocuSign + Stripe backend)** — Stripe PaymentIntent creation needs to move into verti-v2; DocuSign envelope/webhook needs to be built from scratch on both sides
-4. **VER-491 (provider network)** — Zero spec detail in code; needs design before any implementation
-5. **VER-445 (partner badge DB)** — DB migration must land before VER-462 final submit can assign tier
+1. **VER-494 (state machine)** — Merge `feature/VER-ticket1-partner-clinic-invite` to main first; then extend `clinic_invite.status` with all intermediate states (including `call_scheduled`) and add a `PATCH /status` transition endpoint
+2. **VER-466** — ✅ Complete. `POST /schedule` in verti-v2 handles `completed → call_scheduled`; `onBooked` fires it after Cal.com booking.
+3. **VER-423 (password → Supabase user)** — ✅ Complete. Frontend form collects and saves password; `POST /approve` in verti-v2 now calls `supabaseAdmin.auth.admin.createUser()` with rollback on failure.
+4. **VER-377 (DocuSign)** — ✅ Stripe fully done on both sides. DocuSign envelope/webhook still needs to be built from scratch on both sides
+5. **VER-491 (provider network)** — Zero spec detail in code; needs design before any implementation
+6. **VER-445 (partner badge DB)** — DB migration must land before VER-462 final submit can assign tier

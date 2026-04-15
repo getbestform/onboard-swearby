@@ -63,6 +63,9 @@ export function ScheduleForm({
             <p className="text-xs text-[#424843]/60 mt-2">
               A confirmation email with the video link has been sent to you.
             </p>
+            <p className="text-xs text-[#424843]/60 mt-1">
+              Your clinic portal will be activated by our team after the onboarding call is completed.
+            </p>
           </div>
         </div>
 

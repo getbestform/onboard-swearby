@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { saveDraft, loadDraft } from '@/app/actions/invite'
+import { saveDraft, loadDraft, markCallScheduled } from '@/app/actions/invite'
 import { validateStep, type FieldErrors } from './schemas'
 import { type DraftData } from './types'
 import { Icon } from './Icon'
@@ -139,6 +139,11 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
             // Save explicitly with the patch merged — draftRef.current is stale
             // until the next render, so we can't rely on handleSaveDraft here.
             await saveDraft(token, { ...draftRef.current, ...patch } as Record<string, unknown>)
+            // Transition invite status to call_scheduled — fire and forget;
+            // failure here is non-blocking (admin can still see the booking in the draft)
+            markCallScheduled(token).catch((err) =>
+              console.error('[onBooked] markCallScheduled failed:', err)
+            )
             advanceStep()
           }}
           onContinue={advanceStep}
