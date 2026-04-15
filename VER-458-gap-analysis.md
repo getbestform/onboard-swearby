@@ -215,24 +215,28 @@ The spec says: **Payment BEFORE DocuSign**. Current wizard order puts **Payment 
 - ✅ Cal.com embed via `@calcom/embed-react`, captures `bookingUid` + `startTime`
 - ✅ Booking data saved to draft via `PATCH /draft`
 - ✅ Post-booking confirmation screen with portal activation message ("portal will be activated after the call")
-- ✅ Admin panel shows "Activate Portal" button (creates clinic + Supabase auth user from draft) for `call_scheduled` invites; "Awaiting call" label for `completed` invites
-- ✅ `POST /api/partner-invites/{token}/schedule` created in verti-v2 — atomically transitions `completed → call_scheduled`; idempotent if already in that state
-- ✅ `onBooked` callback in `OnboardingWizard.tsx` now calls `markCallScheduled(token)` after a successful Cal.com booking (fire-and-forget — non-blocking so a transient error doesn't break the confirmation screen)
-- ✅ `access_granted` as a separate concept is not needed — "Activate Portal" (`POST /approve`) is the access grant mechanism; it creates the clinic record + Supabase auth user and sets status to `approved`
+- ✅ Admin panel shows "Activate Portal" + "Deny" for both `completed` and `call_scheduled` statuses
+- ✅ `POST /api/partner-invites/{token}/schedule` in verti-v2 — transitions `completed → call_scheduled` (intermediate state when booking happens before submit)
+- ✅ `onBooked` callback calls `markCallScheduled(token)` fire-and-forget after saving draft
+- ✅ `POST /submit` transitions `pending → completed` AND `call_scheduled → completed` — `completed` is the true final state the admin acts on
+- ✅ `POST /approve` accepts both `completed` and `call_scheduled`; creates clinic record + `user_profile` row (required for `custom_access_token_hook` to stamp `clinic_admin` into JWT)
+- ✅ `access_granted` as a separate concept is not needed — `approved` status is the access gate
+
+**Status flow:**
+```
+pending → call_scheduled → completed → approved
+           (cal booked)    (submitted)  (portal active)
+```
 
 ---
 
 ### VER-494 — Foundational: 12-State Status Machine
 **Status: To Do | ~20% implemented**
 
-- ✅ Backend `clinic_invite.status` has 5 states: `pending | completed | approved | denied | expired`
-- ❌ **Major gap:** 7+ intermediate states missing. Expected full machine:
-  ```
-  pending → verified → payment_pending → payment_complete
-    → agreements_signed → intake_in_progress → intake_submitted
-    → call_scheduled → access_granted
-  ```
-- ❌ No state transition endpoint or guards — wizard doesn't enforce step ordering via invite status
+- ✅ Implemented states: `pending | call_scheduled | completed | approved | denied | expired`
+- ✅ `call_scheduled` added via `POST /schedule` endpoint; `completed` is the final wizard state; `approved` gates portal access
+- ❌ Remaining intermediate states not implemented: `verified | payment_pending | payment_complete | agreements_signed | intake_in_progress`
+- ❌ No state transition guards — wizard doesn't enforce step ordering via invite status
 - ✅ `access_granted` handled via `approved` status — no separate column needed
 
 ---
@@ -261,15 +265,15 @@ The spec says: **Payment BEFORE DocuSign**. Current wizard order puts **Payment 
 | VER-491 | Provider Network | High | 0% | 0% | **Completely absent** |
 | VER-492 | Branding | High | ~100% | ~100% | Complete |
 | VER-466 | Cal.com Scheduling | High | ~100% | ~100% | Complete |
-| VER-494 | 12-State Machine | Highest | ~20% | ~20% | **Only 5 states; no transitions; missing `access_granted`** |
+| VER-494 | 12-State Machine | Highest | ~40% | ~40% | 5 of ~11 states done; no transition guards |
 | VER-445 | Launch Partner Badge | Low | 0% | 0% | Entire feature absent (blocked) |
 
 ---
 
 ## Critical Path Blockers (in order)
 
-1. **VER-494 (state machine)** — Merge `feature/VER-ticket1-partner-clinic-invite` to main first; then extend `clinic_invite.status` with all intermediate states (including `call_scheduled`) and add a `PATCH /status` transition endpoint
-2. **VER-466** — ✅ Complete. `POST /schedule` in verti-v2 handles `completed → call_scheduled`; `onBooked` fires it after Cal.com booking.
+1. **VER-494 (state machine)** — Merge `feature/VER-ticket1-partner-clinic-invite` to main first; remaining intermediate states (`verified`, `payment_pending`, `payment_complete`, `agreements_signed`, `intake_in_progress`) and transition guards still needed
+2. **VER-466** — ✅ Complete. Status flow: `pending → call_scheduled → completed → approved`. Submit always lands on `completed`; admin acts on `completed`/`call_scheduled` via "Activate Portal".
 3. **VER-423 (password → Supabase user)** — ✅ Complete. Frontend form collects and saves password; `POST /approve` in verti-v2 now calls `supabaseAdmin.auth.admin.createUser()` with rollback on failure.
 4. **VER-377 (DocuSign)** — ✅ Stripe fully done on both sides. DocuSign envelope/webhook still needs to be built from scratch on both sides
 5. **VER-491 (provider network)** — Zero spec detail in code; needs design before any implementation
