@@ -14,6 +14,7 @@ import { ScheduleForm } from './steps/ScheduleForm'
 import { PasswordForm } from './steps/PasswordForm'
 import { ReviewForm } from './steps/ReviewForm'
 import { ContractsStep } from './steps/ContractsStep'
+import { useOnboardingChrome } from './OnboardingChrome'
 
 const STEPS = [
   { id: 'account',     label: 'Account',        icon: 'user'      },
@@ -42,6 +43,13 @@ const STEP_META = [
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 export function OnboardingWizard({ token, initialDraft, ownerName, email, onComplete }: { token: string; initialDraft?: Record<string, unknown>; ownerName?: string; email?: string; onComplete: () => void }) {
+  const { setHeaderVisible } = useOnboardingChrome()
+
+  useEffect(() => {
+    setHeaderVisible(false)
+    return () => setHeaderVisible(true)
+  }, [setHeaderVisible])
+
   const [step, setStep] = useState(0)
   const [draft, setDraft] = useState<DraftData>((initialDraft ?? {}) as DraftData)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
