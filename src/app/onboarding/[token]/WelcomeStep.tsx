@@ -22,7 +22,7 @@ const BG: Record<number, string> = {
   4: '#FBF7F2',
 }
 
-export function WelcomeStep({ ownerName, onComplete: _onComplete, initialPhase = 1 }: { ownerName?: string; onComplete: () => void; initialPhase?: number }) {
+export function WelcomeStep({ ownerName, onComplete, initialPhase = 1 }: { ownerName?: string; onComplete: () => void; initialPhase?: number }) {
   const [phase, setPhase] = useState(initialPhase)
   const [anim, setAnim]   = useState<AnimState>('idle')
 
@@ -123,7 +123,7 @@ export function WelcomeStep({ ownerName, onComplete: _onComplete, initialPhase =
   // scroll-hijacking and hand off to the scroll-driven FeatureCascade. The
   // first frame of the cascade matches what Phase 4 used to show.
   if (phase >= 4) {
-    return <FeatureCascade ownerName={ownerName} />
+    return <FeatureCascade ownerName={ownerName} onComplete={onComplete} />
   }
 
   const mainStyle = (): React.CSSProperties => {

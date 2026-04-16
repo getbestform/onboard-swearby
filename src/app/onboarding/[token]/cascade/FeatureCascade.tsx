@@ -612,7 +612,7 @@ function LogoCell({
 // Main component
 // ==========================================================================
 
-export function FeatureCascade({ ownerName }: { ownerName?: string }) {
+export function FeatureCascade({ ownerName, onComplete }: { ownerName?: string; onComplete?: () => void }) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -886,7 +886,7 @@ export function FeatureCascade({ ownerName }: { ownerName?: string }) {
       </section>
 
       {/* Book a call — "We're built to make you money." */}
-      <BookACallScreen guestName={guestName} />
+      <BookACallScreen guestName={guestName} onComplete={onComplete} />
     </div>
   )
 }

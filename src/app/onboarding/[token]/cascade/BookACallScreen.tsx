@@ -2,7 +2,7 @@
 
 import { COLORS } from './data'
 
-export function BookACallScreen({ guestName }: { guestName: string }) {
+export function BookACallScreen({ guestName, onComplete }: { guestName: string; onComplete?: () => void }) {
   return (
     <section
       id="book-a-call"
@@ -43,14 +43,19 @@ export function BookACallScreen({ guestName }: { guestName: string }) {
         </h1>
 
         {/* Book a call CTA — plain link for now */}
-        <a
-          href="#"
+        <button
+          type="button"
+          onClick={onComplete}
           className="mt-12 inline-flex items-center gap-3 group"
           style={{
             color: COLORS.gold,
             fontSize: 24,
             fontWeight: 500,
             letterSpacing: '-0.01em',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
           }}
         >
           <span style={{ textDecoration: 'underline', textUnderlineOffset: 6 }}>Book a call</span>
@@ -70,7 +75,7 @@ export function BookACallScreen({ guestName }: { guestName: string }) {
               strokeLinejoin="round"
             />
           </svg>
-        </a>
+        </button>
 
         {/* Divider */}
         <div
