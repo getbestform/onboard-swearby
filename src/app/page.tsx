@@ -2,6 +2,8 @@ import Link from 'next/link'
 
 /** Production clinic app — partner dashboard sign-in. */
 const CLINIC_DASHBOARD_LOGIN = 'https://app.swearbyhealth.com/login'
+const LEGAL_PRIVACY = 'https://app.swearbyhealth.com/legal/privacy'
+const LEGAL_TERMS = 'https://app.swearbyhealth.com/legal/terms'
 
 const steps = [
   {
@@ -157,14 +159,18 @@ export default function Home() {
           <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
             <span className="font-display font-bold text-cream/80 text-sm">swearby</span>
             <div className="flex gap-8">
-              {['Privacy Policy', 'Terms of Service'].map((item) => (
-                <span
-                  key={item}
-                  className="text-[10px] uppercase tracking-widest text-cream/70 underline underline-offset-4 decoration-gold/50"
-                >
-                  {item}
-                </span>
-              ))}
+              <Link
+                href={LEGAL_PRIVACY}
+                className="text-[10px] uppercase tracking-widest text-cream/70 underline underline-offset-4 decoration-gold/50 hover:text-gold transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href={LEGAL_TERMS}
+                className="text-[10px] uppercase tracking-widest text-cream/70 underline underline-offset-4 decoration-gold/50 hover:text-gold transition-colors"
+              >
+                Terms of Service
+              </Link>
             </div>
             <span className="text-[10px] uppercase tracking-widest text-cream/45">© 2026 SwearBy. HIPAA Compliant.</span>
           </div>
