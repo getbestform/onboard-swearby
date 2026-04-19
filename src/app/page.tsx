@@ -71,7 +71,7 @@ export default function Home() {
           <p className="text-[10px] uppercase tracking-[0.2em] text-gold mb-5">Clinic Onboarding Portal</p>
           <h1 className="font-display text-5xl md:text-7xl text-cream leading-[1.05] max-w-3xl mb-8">
             Get your clinic<br />
-            <span className="text-gold">set up on SwearBy.</span>
+            <span className="text-gold">set up on swearby.</span>
           </h1>
           <p className="text-cream/75 text-lg leading-relaxed max-w-xl mb-12">
             This portal guides you through the onboarding process — from credentials and agreements to formulary setup and platform access. Use the access code from your invite email to get started.
