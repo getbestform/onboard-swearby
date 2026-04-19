@@ -9,8 +9,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-3xl text-text-primary mb-2">Clinic login</h1>
-        <p className="text-text-secondary text-sm mb-8">Sign in to your clinic dashboard</p>
+        <h1 className="font-display text-3xl text-text-primary mb-2">Clinic onboarding</h1>
+        <p className="text-text-secondary text-sm mb-8">
+          Sign in with the email and password from your invite to continue your clinic&apos;s SwearBy onboarding.
+        </p>
 
         <form action={action} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
@@ -50,9 +52,9 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={pending}
-            className="mt-2 h-11 rounded-xl bg-primary text-neutral text-sm font-medium transition-opacity disabled:opacity-60 hover:opacity-90"
+            className="mt-2 h-11 rounded-xl bg-primary text-cream text-sm font-medium transition-opacity disabled:opacity-60 hover:opacity-90"
           >
-            {pending ? 'Signing in…' : 'Sign in to dashboard'}
+            {pending ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
       </div>
