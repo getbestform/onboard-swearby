@@ -1,54 +1,63 @@
 import Link from 'next/link'
 
+/** Production clinic app — partner dashboard sign-in. */
+const CLINIC_DASHBOARD_LOGIN = 'https://app.swearbyhealth.com/login'
+const LEGAL_PRIVACY = 'https://app.swearbyhealth.com/legal/privacy'
+const LEGAL_TERMS = 'https://app.swearbyhealth.com/legal/terms'
+
 const steps = [
   {
     number: '01',
-    title: 'Invite & Verification',
-    body: 'Receive your exclusive invite link and confirm your identity with a one-time access code.',
+    title: 'Access Code',
+    body: 'Enter your 6-digit onboarding code from your invite email to begin.',
   },
   {
     number: '02',
-    title: 'Deposit & Agreements',
-    body: 'Secure your founding partner position with a $2,500 deposit and sign the MSA, BAA, and marketing agreements via DocuSign.',
+    title: 'Clinic Details',
+    body: 'Provide your clinic information, NPI, DEA credentials, and state licenses.',
   },
   {
     number: '03',
-    title: 'Configuration',
-    body: 'Set up your drug catalog, prescriber credentials, clinic branding, and schedule your onboarding call.',
+    title: 'Agreements & Deposit',
+    body: 'Sign the MSA and BAA via DocuSign, then submit the onboarding deposit.',
   },
   {
     number: '04',
-    title: 'Platform Access',
-    body: 'Upon manual approval after your onboarding call, receive full access to the SwearBy EMR platform.',
+    title: 'Platform Setup',
+    body: 'Configure your formulary, add prescribers, and customize your clinic branding.',
   },
 ]
 
 const pillars = [
   {
-    label: 'Invite-Only Access',
-    body: 'Every partner clinic is personally vetted and invited by the SwearBy clinical team before onboarding begins.',
-  },
-  {
     label: 'HIPAA Compliant',
-    body: 'AES-256 encrypted data handling, BAA execution, and PCI-compliant payment processing via Stripe.',
+    body: 'End-to-end encryption, BAA execution, and role-based access controls built into every layer.',
   },
   {
-    label: 'Clinical Precision',
-    body: 'Built for practitioners — DEA verification, state-specific formulary setup, and credentialed prescriber management.',
+    label: 'Credential Verification',
+    body: 'Automated NPI and DEA validation with state license tracking for all prescribers.',
+  },
+  {
+    label: 'DoseSpot Integration',
+    body: 'Full e-prescribing with Surescripts certification, scripts sent directly to pharmacies.',
   },
 ]
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-neutral font-sans text-primary">
+    <div className="relative min-h-screen bg-gradient-to-b from-forest-dark via-forest to-forest-dark font-sans text-cream antialiased">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(189,167,99,0.12),transparent_55%)]"
+        aria-hidden
+      />
 
       {/* Nav */}
-      <header className="sticky top-0 z-50 bg-neutral border-b border-secondary/10">
+      <header className="sticky top-0 z-50 border-b border-gold/20 bg-forest/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <span className="font-serif text-lg font-bold tracking-widest text-primary">SWEARBY CLINICAL</span>
+          <span className="font-display text-lg font-bold text-cream tracking-tight">swearby</span>
           <Link
-            href="/login"
-            className="flex items-center gap-2 text-xs uppercase tracking-widest font-semibold text-primary border border-primary/30 rounded px-4 h-9 hover:bg-primary hover:text-neutral transition-all"
+            href={CLINIC_DASHBOARD_LOGIN}
+            className="flex items-center gap-2 text-xs uppercase tracking-widest font-semibold text-cream border border-gold/40 rounded px-4 h-9 hover:bg-gold/15 hover:border-gold/60 transition-all"
           >
             Partner Login
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -58,102 +67,115 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="max-w-6xl mx-auto px-6 pt-24 pb-20">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-secondary mb-5">Invite-Only Partner Program</p>
-        <h1 className="font-serif text-5xl md:text-7xl text-primary leading-[1.05] max-w-3xl mb-8">
-          The Clinical Platform<br />
-          <span className="italic text-secondary">Built for Founders.</span>
-        </h1>
-        <p className="text-secondary text-lg leading-relaxed max-w-xl mb-12">
-          SwearBy Clinical is a precision EMR platform for independent practitioners. Onboarding is invite-only — each partner is personally vetted before access is granted.
-        </p>
-        <div className="flex items-center gap-6">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-3 bg-primary text-neutral text-xs uppercase tracking-widest font-semibold px-7 h-12 rounded hover:opacity-90 transition-opacity"
-          >
-            Access Portal
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </Link>
-          <span className="text-xs text-secondary/60 uppercase tracking-widest">Invitation required</span>
-        </div>
-      </section>
-
-      {/* Divider */}
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="h-px bg-secondary/15" />
-      </div>
-
-      {/* Onboarding Steps */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-secondary mb-3">Onboarding Process</p>
-        <h2 className="font-serif text-3xl text-primary mb-14">Four steps to full access.</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((s) => (
-            <div key={s.number}>
-              <span className="font-serif text-4xl text-secondary/25 block mb-5">{s.number}</span>
-              <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">{s.title}</h3>
-              <p className="text-sm text-secondary leading-relaxed">{s.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Divider */}
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="h-px bg-secondary/15" />
-      </div>
-
-      {/* Pillars */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-secondary mb-3">Platform Standards</p>
-        <h2 className="font-serif text-3xl text-primary mb-14">Built on trust.</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {pillars.map((p) => (
-            <div key={p.label} className="bg-secondary/5 rounded-lg p-8">
-              <div className="w-8 h-0.5 bg-primary mb-6" />
-              <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">{p.label}</h3>
-              <p className="text-sm text-secondary leading-relaxed">{p.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
-        <div className="bg-primary rounded-lg px-10 py-14 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-neutral/50 mb-3">Already a partner?</p>
-            <h2 className="font-serif text-3xl text-neutral leading-tight">Sign in to your portal.</h2>
+      <div className="relative">
+        {/* Hero */}
+        <section className="max-w-6xl mx-auto px-6 pt-24 pb-20">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gold mb-5">Clinic Onboarding Portal</p>
+          <h1 className="font-display text-5xl md:text-7xl text-cream leading-[1.05] max-w-3xl mb-8">
+            Get your clinic<br />
+            <span className="text-gold">set up on swearby.</span>
+          </h1>
+          <p className="text-cream/75 text-lg leading-relaxed max-w-xl mb-12">
+            This portal guides you through the onboarding process — from credentials and agreements to formulary setup and platform access. Use the access code from your invite email to get started.
+          </p>
+          <div className="flex flex-wrap items-center gap-6">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-3 bg-gold text-forest text-xs uppercase tracking-widest font-semibold px-7 h-12 rounded hover:bg-gold/90 transition-colors"
+            >
+              Start Onboarding
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </Link>
+            <span className="text-xs text-gold/80 uppercase tracking-widest">Access code required</span>
           </div>
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-3 bg-neutral text-primary text-xs uppercase tracking-widest font-semibold px-7 h-12 rounded hover:opacity-90 transition-opacity shrink-0"
-          >
-            Partner Login
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <footer className="border-t border-secondary/10">
-        <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <span className="font-serif font-bold tracking-widest text-secondary text-sm">SWEARBY CLINICAL</span>
-          <div className="flex gap-8">
-            {['Privacy Policy', 'Terms of Service', 'Security Disclosure'].map((item) => (
-              <span key={item} className="text-[10px] uppercase tracking-widest text-secondary/50">{item}</span>
+        {/* Divider */}
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="h-px bg-gold/20" />
+        </div>
+
+        {/* Onboarding Steps */}
+        <section className="max-w-6xl mx-auto px-6 py-20">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gold mb-3">Onboarding Process</p>
+          <h2 className="font-display text-3xl text-cream mb-14">What to expect.</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {steps.map((s) => (
+              <div key={s.number}>
+                <span className="font-display text-4xl text-gold/25 block mb-5">{s.number}</span>
+                <h3 className="text-sm font-semibold text-gold uppercase tracking-wider mb-3">{s.title}</h3>
+                <p className="text-sm text-cream/70 leading-relaxed">{s.body}</p>
+              </div>
             ))}
           </div>
-          <span className="text-[10px] uppercase tracking-widest text-secondary/40">© 2024 SwearBy Clinical. HIPAA Compliant.</span>
-        </div>
-      </footer>
+        </section>
 
+        {/* Divider */}
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="h-px bg-gold/20" />
+        </div>
+
+        {/* Pillars */}
+        <section className="max-w-6xl mx-auto px-6 py-20">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gold mb-3">Platform Features</p>
+          <h2 className="font-display text-3xl text-cream mb-14">What you get.</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {pillars.map((p) => (
+              <div
+                key={p.label}
+                className="rounded-lg border border-gold/20 bg-forest-light/25 backdrop-blur-sm p-8 shadow-[inset_0_1px_0_0_rgba(189,167,99,0.08)]"
+              >
+                <div className="w-8 h-0.5 bg-gold mb-6" />
+                <h3 className="text-sm font-semibold text-gold uppercase tracking-wider mb-3">{p.label}</h3>
+                <p className="text-sm text-cream/70 leading-relaxed">{p.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="max-w-6xl mx-auto px-6 py-20">
+          <div className="rounded-lg border border-gold/25 bg-forest-light/20 backdrop-blur-sm px-10 py-14 flex flex-col md:flex-row md:items-center md:justify-between gap-8 shadow-[inset_0_1px_0_0_rgba(189,167,99,0.1)]">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-gold/80 mb-3">Already onboarded?</p>
+              <h2 className="font-display text-3xl text-cream leading-tight">Sign in to your clinic dashboard.</h2>
+            </div>
+            <Link
+              href={CLINIC_DASHBOARD_LOGIN}
+              className="inline-flex items-center gap-3 bg-gold text-forest text-xs uppercase tracking-widest font-semibold px-7 h-12 rounded hover:bg-gold/90 transition-colors shrink-0"
+            >
+              Partner Login
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="border-t border-gold/20">
+          <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
+            <span className="font-display font-bold text-cream/80 text-sm">swearby</span>
+            <div className="flex gap-8">
+              <Link
+                href={LEGAL_PRIVACY}
+                className="text-[10px] uppercase tracking-widest text-cream/70 underline underline-offset-4 decoration-gold/50 hover:text-gold transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href={LEGAL_TERMS}
+                className="text-[10px] uppercase tracking-widest text-cream/70 underline underline-offset-4 decoration-gold/50 hover:text-gold transition-colors"
+              >
+                Terms of Service
+              </Link>
+            </div>
+            <span className="text-[10px] uppercase tracking-widest text-cream/45">© 2026 SwearBy. HIPAA Compliant.</span>
+          </div>
+        </footer>
+      </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { DM_Serif_Display, Inter, Newsreader, Plus_Jakarta_Sans } from 'next/font/google'
+import { Inter, DM_Serif_Display } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({
@@ -7,24 +7,10 @@ const inter = Inter({
   subsets: ['latin'],
 })
 
-const newsreader = Newsreader({
-  variable: '--font-newsreader',
+const dmSerif = DM_Serif_Display({
+  variable: '--font-display',
   subsets: ['latin'],
-  style: ['normal', 'italic'],
-})
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: '--font-plus-jakarta-sans',
-  subsets: ['latin'],
-  weight: ['200', '300', '400', '500', '600', '700', '800'],
-  style: ['normal', 'italic'],
-})
-
-const dmSerifDisplay = DM_Serif_Display({
-  variable: '--font-dm-serif-display',
-  subsets: ['latin'],
-  style: ['normal', 'italic'],
-  weight: '400',
+  weight: ['400'],
 })
 
 export const metadata: Metadata = {
@@ -34,8 +20,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${newsreader.variable} ${plusJakartaSans.variable} ${dmSerifDisplay.variable} h-full antialiased`}>
-      <body suppressHydrationWarning className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`${inter.variable} ${dmSerif.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   )
 }
