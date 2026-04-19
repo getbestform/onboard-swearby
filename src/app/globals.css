@@ -1,268 +1,52 @@
 @import "tailwindcss";
 
-/* =========================================================================
-   Swearby Health — Design Tokens
-   ========================================================================= */
-
 :root {
-  /* ---------- CORE BRAND ------------------------------------------------ */
-  --swearby-green:   #263C30;
-  --swearby-cream:   #F5F1E8;
-  --swearby-cream-2: #FBF7F2;
-  --swearby-cream-3: #FEF9F1;
-  --swearby-gold:    #BDA763;
-  --swearby-ink:     #1C1C1A;
-
-  /* ---------- SUPPORTING ------------------------------------------------ */
-  --swearby-plum:    #512A2D;
-  --swearby-sage:    #A9CFB6;
-  --swearby-moss:    #6C7B70;
-  --swearby-sand:    #E4E2DD;
-  --swearby-sand-2:  #E4DFD4;
-
-  /* ---------- FOREGROUND (on cream) ------------------------------------- */
-  --fg-1: #1C1C1A;
-  --fg-2: #263C30;
-  --fg-3: #424843;
-  --fg-4: rgba(66, 72, 67, 0.6);
-  --fg-5: rgba(66, 72, 67, 0.4);
-
-  /* ---------- FOREGROUND (on green) ------------------------------------- */
-  --on-green-1: #FFFFFF;
-  --on-green-2: #A9CFB6;
-  --on-green-3: rgba(255, 255, 255, 0.5);
-  --on-green-4: #BDA763;
-
-  /* ---------- SURFACES -------------------------------------------------- */
-  --surface:        #F5F1E8;
-  --surface-raised: #FFFFFF;
-  --surface-inset:  #F0EEE9;
-  --surface-dark:   #263C30;
-  --surface-darker: #022616;
-
-  /* ---------- LEGACY ALIASES (keep for existing Tailwind usages) -------- */
-  --background: #FEF9F1;
-  --foreground: #1A3C2A;
-
-  /* ---------- SEMANTIC -------------------------------------------------- */
-  --semantic-success:    #1A3C2A;
-  --semantic-warning:    #BDA763;
-  --semantic-danger:     #B23A3F;
-  --semantic-danger-bg:  rgba(178, 58, 63, 0.08);
-
-  /* ---------- BORDERS --------------------------------------------------- */
-  --border-hairline: rgba(38, 60, 48, 0.10);
-  --border-soft:     #E4E2DD;
-  --border-strong:   rgba(38, 60, 48, 0.30);
-
-  /* ---------- ELEVATION ------------------------------------------------- */
-  --shadow-xs:  0 1px 0 rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm:  0 1px 2px rgba(38, 60, 48, 0.06), 0 1px 3px rgba(38, 60, 48, 0.04);
-  --shadow-md:  0 6px 24px rgba(38, 60, 48, 0.08);
-  --shadow-lg:  0 20px 50px rgba(38, 60, 48, 0.12);
-  --shadow-cta: 0 20px 40px -12px rgba(26, 60, 42, 0.25);
-
-  /* ---------- RADIUS ---------------------------------------------------- */
-  --radius-xs:   2px;
-  --radius-sm:   4px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
-  --radius-xl:   16px;
-  --radius-pill: 999px;
-
-  /* ---------- SPACING (8-pt scale) -------------------------------------- */
-  --space-0:  0;
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  24px;
-  --space-6:  32px;
-  --space-7:  48px;
-  --space-8:  64px;
-  --space-9:  96px;
-  --space-10: 128px;
-
-  /* ---------- TYPE: WEIGHTS --------------------------------------------- */
-  --weight-thin:     200;
-  --weight-light:    300;
-  --weight-regular:  400;
-  --weight-medium:   500;
-  --weight-semibold: 600;
-  --weight-bold:     700;
-  --weight-black:    800;
-
-  /* ---------- TYPE: TRACKING -------------------------------------------- */
-  --tracking-tight:  -0.02em;
-  --tracking-snug:   -0.01em;
-  --tracking-normal: 0;
-  --tracking-wide:   0.1em;
-  --tracking-wider:  0.2em;
-  --tracking-mega:   0.35em;
-
-  /* ---------- TYPE: SIZE SCALE ------------------------------------------ */
-  --text-xs:   10px;  --lh-xs:   1.4;
-  --text-sm:   12px;  --lh-sm:   1.5;
-  --text-base: 14px;  --lh-base: 1.55;
-  --text-md:   16px;  --lh-md:   1.6;
-  --text-lg:   18px;  --lh-lg:   1.6;
-  --text-xl:   24px;  --lh-xl:   1.35;
-  --text-2xl:  32px;  --lh-2xl:  1.2;
-  --text-3xl:  40px;  --lh-3xl:  1.15;
-  --text-4xl:  48px;  --lh-4xl:  1.1;
-  --text-5xl:  64px;  --lh-5xl:  1.05;
-  --text-6xl:  96px;  --lh-6xl:  1.0;
+  --background: #faf8f4;
+  --foreground: #2c2c2c;
 }
-
-/* =========================================================================
-   Tailwind theme mappings
-   ========================================================================= */
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Aura Verdant palette */
-  --color-primary:   #1A3C2A;
-  --color-secondary: #6C7B70;
-  --color-tertiary:  #512A2D;
-  --color-neutral:   #FEF9F1;
+  /* Page & Surface Colors */
+  --color-bg: #faf8f4;
+  --color-bg-card: #ffffff;
+  --color-bg-card-hover: #f5f0e8;
+  --color-bg-panel: #f5f0e8;
+  --color-border: #e8e0d2;
+  --color-border-hover: #d4cfc4;
 
-  /* Extended brand palette */
-  --color-green:  #263C30;
-  --color-cream:  #F5F1E8;
-  --color-gold:   #BDA763;
-  --color-ink:    #1C1C1A;
-  --color-sage:   #A9CFB6;
-  --color-moss:   #6C7B70;
-  --color-sand:   #E4E2DD;
-  --color-plum:   #512A2D;
+  /* Text Colors */
+  --color-text-primary: #2c2c2c;
+  --color-text-secondary: #6b6b6b;
+  --color-text-muted: #9a9a9a;
+
+  /* Brand Colors */
+  --color-primary: #1a3c2a;
+  --color-primary-hover: #2d5e42;
+  --color-accent: #1a3c2a;
+  --color-accent-hover: #2d5e42;
+  --color-forest: #1a3c2a;
+  --color-forest-light: #2d5e42;
+  --color-forest-dark: #0f2418;
+  --color-cream: #f5f0e8;
+  --color-cream-dark: #e8e0d2;
+  --color-sage: #7a9e8a;
+  --color-gold: #c4a265;
+  --color-coral: #d4836a;
+  --color-success: #22c55e;
+  --color-warning: #c4a265;
+  --color-danger: #d4836a;
+  --color-info: #7a9e8a;
+
+  /* Typography */
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-dm-serif);
 }
-
-@theme {
-  --font-plus-jakarta: var(--font-plus-jakarta-sans);
-  --font-sans:         var(--font-plus-jakarta-sans);
-  --font-serif:        var(--font-newsreader);
-  --font-display:      var(--font-dm-serif-display);
-}
-
-/* =========================================================================
-   Base
-   ========================================================================= */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
-}
-
-/* =========================================================================
-   Semantic type classes
-   Usage: <h1 class="sw-h1">, <p class="sw-eyebrow">
-   ========================================================================= */
-
-.sw-display,
-.sw-h1 {
-  font-family: var(--font-newsreader), Georgia, serif;
-  font-weight: var(--weight-regular);
-  font-size: var(--text-5xl);
-  line-height: var(--lh-5xl);
-  letter-spacing: var(--tracking-tight);
-  color: var(--fg-1);
-}
-
-.sw-h2 {
-  font-family: var(--font-newsreader), Georgia, serif;
-  font-weight: var(--weight-regular);
-  font-size: var(--text-3xl);
-  line-height: var(--lh-3xl);
-  letter-spacing: var(--tracking-snug);
-  color: var(--fg-2);
-}
-
-.sw-h3 {
-  font-family: var(--font-newsreader), Georgia, serif;
-  font-weight: var(--weight-medium);
-  font-size: var(--text-xl);
-  line-height: var(--lh-xl);
-  color: var(--fg-2);
-}
-
-.sw-headline {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
-  font-weight: var(--weight-medium);
-  font-size: var(--text-3xl);
-  line-height: 1.15;
-  letter-spacing: var(--tracking-tight);
-  color: var(--fg-1);
-}
-
-.sw-headline--bold {
-  font-weight: var(--weight-bold);
-  letter-spacing: var(--tracking-snug);
-}
-
-.sw-body {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
-  font-weight: var(--weight-regular);
-  font-size: var(--text-base);
-  line-height: var(--lh-base);
-  color: var(--fg-3);
-}
-
-.sw-body-lg {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
-  font-weight: var(--weight-regular);
-  font-size: var(--text-md);
-  line-height: var(--lh-md);
-  color: var(--fg-3);
-}
-
-.sw-body-sm {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
-  font-weight: var(--weight-regular);
-  font-size: var(--text-sm);
-  line-height: var(--lh-sm);
-  color: var(--fg-3);
-}
-
-/* The brand signature — ALL CAPS, heavy tracking (~4–5px at 10px). */
-.sw-eyebrow {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-xs);
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-mega);
-  color: var(--swearby-gold);
-}
-
-.sw-eyebrow--muted {
-  color: var(--fg-5);
-  letter-spacing: var(--tracking-wider);
-}
-
-.sw-label {
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wider);
-  color: var(--fg-4);
-}
-
-/* DM Serif Display — reserved for the Swearby wordmark. */
-.sw-wordmark {
-  font-family: var(--font-dm-serif-display), 'Newsreader', Georgia, serif;
-  font-weight: var(--weight-regular);
-  letter-spacing: 0.02em;
-  color: var(--fg-2);
-}
-
-.sw-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-weight: var(--weight-regular);
-  font-size: var(--text-sm);
-  letter-spacing: 0.02em;
-  color: var(--fg-2);
+  font-family: var(--font-inter), system-ui, sans-serif;
 }

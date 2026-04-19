@@ -177,7 +177,7 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
 
       {/* Top nav */}
       <header className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-8 py-4 border-b border-[#e4e2dd] bg-[#fbf9f4]">
-        <span className="font-serif text-xl italic text-[#1A3C2A]">Clinical Editorial</span>
+        <span className="font-display text-xl text-forest">swearby</span>
         <div className="flex items-center gap-6">
           {saveStatus === 'saving' && (
             <div className="flex items-center gap-2 text-[#424843]/40">
@@ -202,7 +202,7 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
       {/* Sidebar */}
       <nav className="fixed left-0 top-0 h-full w-64 flex flex-col p-6 pt-24 border-r border-[#e4e2dd] bg-[#fbf9f4]">
         <div className="mb-10">
-          <h1 className="font-serif text-xl font-bold text-[#1A3C2A]">Onboarding</h1>
+          <h1 className="font-display text-xl font-bold text-forest">Onboarding</h1>
           <p className="text-sm text-[#424843]/60 mt-0.5">Clinic Setup Wizard</p>
         </div>
 
@@ -237,7 +237,7 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
                 <span className="text-[10px] uppercase tracking-widest text-[#424843]/60 font-bold">
                   Step {String(step + 1).padStart(2, '0')} of {STEPS.length.toString().padStart(2, '0')}
                 </span>
-                <h2 className="font-serif text-5xl text-[#1A3C2A] leading-tight">{meta.title}</h2>
+                <h2 className="font-display text-5xl text-forest leading-tight">{meta.title}</h2>
               </div>
               <div className="flex gap-1">
                 {STEPS.map((_, i) => (
@@ -250,7 +250,7 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
             <div className="grid grid-cols-12 gap-8">
               <div className="col-span-12 lg:col-span-4">
                 <div className="p-6 bg-[#f5f3ee] rounded sticky top-32">
-                  <h3 className="font-serif text-xl mb-3 text-[#1A3C2A]">{meta.instruction.heading}</h3>
+                  <h3 className="font-display text-xl mb-3 text-forest">{meta.instruction.heading}</h3>
                   <p className="text-sm leading-relaxed text-[#424843]">{meta.instruction.body}</p>
                   <div className="mt-6 pt-6 border-t border-[#e4e2dd]">
                     <span className="text-[10px] uppercase tracking-widest text-[#424843]/50">Required Document</span>

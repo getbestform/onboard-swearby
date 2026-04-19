@@ -7,10 +7,10 @@ export default function LoginPage() {
   const [state, action, pending] = useActionState(login, undefined)
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral px-4">
+    <div className="min-h-screen flex items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm">
-        <h1 className="font-serif text-3xl text-primary mb-2">Welcome back</h1>
-        <p className="text-secondary text-sm mb-8">Sign in to your account</p>
+        <h1 className="font-display text-3xl text-text-primary mb-2">Welcome back</h1>
+        <p className="text-text-secondary text-sm mb-8">Sign in to your account</p>
 
         <form action={action} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
