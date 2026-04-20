@@ -33,7 +33,7 @@ export default function Sidebar() {
   return (
     <aside className="w-52 shrink-0 flex flex-col bg-neutral h-screen sticky top-0 border-r border-secondary/10">
       <div className="px-5 pt-7 pb-8">
-        <p className="font-serif text-primary text-xl leading-tight">SwearBy Clinical</p>
+        <p className="font-display text-primary text-xl leading-tight">SwearBy Clinical</p>
         <p className="text-[10px] uppercase tracking-[0.18em] text-secondary mt-1">Onboarding Portal</p>
       </div>
 

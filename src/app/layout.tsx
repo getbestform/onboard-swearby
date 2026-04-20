@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, DM_Serif_Display } from 'next/font/google'
+import { Inter, DM_Serif_Display, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({
@@ -13,6 +13,12 @@ const dmSerif = DM_Serif_Display({
   weight: ['400'],
 })
 
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: '--font-plus-jakarta',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+})
+
 export const metadata: Metadata = {
   title: 'SwearBy Clinical',
   description: 'Onboarding Portal',
@@ -20,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${dmSerif.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} ${dmSerif.variable} ${plusJakarta.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   )

@@ -59,7 +59,7 @@ export default async function InviteDetailPage({
             All Invites
           </Link>
           <p className="text-[10px] uppercase tracking-[0.15em] text-secondary mb-1">Submitted Application</p>
-          <h1 className="font-serif text-3xl text-primary leading-tight">{invite.ownerName}</h1>
+          <h1 className="font-display text-3xl text-primary leading-tight">{invite.ownerName}</h1>
           <p className="text-sm text-secondary mt-1">{invite.email}</p>
         </div>
         <div className="flex items-center gap-3 mt-2">

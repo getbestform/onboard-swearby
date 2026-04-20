@@ -108,7 +108,7 @@ export function WelcomeStep({ ownerName, onComplete, initialPhase = 1 }: { owner
 
     if (root)       { root.style.transition = `background-color ${TRANSITION}`; root.style.backgroundColor = BG[phase] }
     if (logo)       { logo.style.transition = `filter ${TRANSITION}`;           logo.style.filter = isDark ? 'brightness(0) invert(1)' : 'none' }
-    if (footerText) { footerText.style.transition = `color ${TRANSITION}`;      footerText.style.color = isDark ? '' : 'rgba(38,60,48,0.45)' }
+    if (footerText) { footerText.style.transition = `color ${TRANSITION}`;      footerText.style.color = isDark ? '' : 'rgba(38,60,48,0.7)' }
 
     firstMountRef.current = false
 

@@ -176,23 +176,23 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
     <div className="fixed inset-0 z-20 overflow-auto bg-[#fbf9f4] text-[#1b1c19] [font-family:var(--font-plus-jakarta)]">
 
       {/* Top nav */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-8 py-4 border-b border-[#e4e2dd] bg-[#fbf9f4]">
-        <span className="font-display text-xl text-forest">swearby</span>
+      <header className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-8 py-4 border-b border-[#1A3C2A] bg-forest text-cream">
+        <span className="font-display text-xl text-cream">swearby</span>
         <div className="flex items-center gap-6">
           {saveStatus === 'saving' && (
-            <div className="flex items-center gap-2 text-[#424843]/40">
+            <div className="flex items-center gap-2 text-cream/60">
               <Icon name="spinner" className="w-3.5 h-3.5" />
               <span className="text-[10px] uppercase tracking-widest">Saving…</span>
             </div>
           )}
           {saveStatus === 'saved' && (
-            <div className="flex items-center gap-2 text-[#424843]/60">
+            <div className="flex items-center gap-2 text-gold">
               <Icon name="cloud" className="w-4 h-4" />
               <span className="text-[10px] uppercase tracking-widest">Saved</span>
             </div>
           )}
           {saveStatus === 'error' && (
-            <div className="flex items-center gap-2 text-red-400">
+            <div className="flex items-center gap-2 text-coral">
               <span className="text-[10px] uppercase tracking-widest">Save failed</span>
             </div>
           )}
@@ -291,13 +291,6 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
                       </button>
                     </div>
                   )}
-                </div>
-
-                <div className="mt-6 px-2 flex items-start gap-3 opacity-50">
-                  <Icon name="lock" className="w-4 h-4 text-[#424843] mt-0.5 shrink-0" />
-                  <p className="text-[10px] leading-relaxed text-[#424843] uppercase tracking-widest font-medium">
-                    Clinical data is encrypted and stored according to HIPAA and GDPR standards. SwearBy Clinical Editorial maintains a zero-knowledge architecture.
-                  </p>
                 </div>
               </div>
             </div>

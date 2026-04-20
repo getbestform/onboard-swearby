@@ -1,4 +1,4 @@
-import { OnboardingChromeProvider, OnboardingHeader } from './OnboardingChrome'
+import { OnboardingChromeProvider, OnboardingHeader, OnboardingFooter } from './OnboardingChrome'
 
 function LeafTopLeft() {
   return (
@@ -48,11 +48,7 @@ export default function OnboardingTokenLayout({ children }: { children: React.Re
           {children}
         </div>
 
-        <footer className="hidden md:block relative z-10 px-8 md:px-5 pb-8 md:pb-10 mx-auto max-w-[1200px] w-full">
-          <p id="onboarding-footer-text" className="text-[#a9cfb6]/40 text-xs">
-            &copy; 2026 SwearbyHealth&trade;. All rights reserved.
-          </p>
-        </footer>
+        <OnboardingFooter />
       </div>
     </OnboardingChromeProvider>
   )

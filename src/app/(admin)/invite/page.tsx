@@ -73,7 +73,7 @@ function NewInviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
         <div className="flex items-start justify-between mb-6">
           <div>
             <p className="text-[10px] uppercase tracking-[0.15em] text-secondary mb-1">New Practitioner Enrollment</p>
-            <h2 className="font-serif text-2xl text-primary leading-tight">Invite to Onboard</h2>
+            <h2 className="font-display text-2xl text-primary leading-tight">Invite to Onboard</h2>
           </div>
           <button onClick={onClose} className="text-secondary hover:text-primary transition-colors mt-1">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -232,7 +232,7 @@ export default function InvitesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-[10px] uppercase tracking-[0.15em] text-secondary mb-1">Practitioner Enrollment</p>
-          <h1 className="font-serif text-3xl text-primary leading-tight">Invites</h1>
+          <h1 className="font-display text-3xl text-primary leading-tight">Invites</h1>
         </div>
         <button
           onClick={() => setShowModal(true)}

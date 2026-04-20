@@ -43,6 +43,7 @@
   /* Typography */
   --font-sans: var(--font-inter);
   --font-display: var(--font-display);
+  --font-plus-jakarta: var(--font-plus-jakarta);
 }
 
 body {

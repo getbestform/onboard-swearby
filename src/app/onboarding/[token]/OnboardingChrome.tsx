@@ -54,6 +54,21 @@ export function OnboardingHeader() {
   )
 }
 
+export function OnboardingFooter() {
+  const { headerVisible } = useOnboardingChrome()
+  if (!headerVisible) return null
+  return (
+    <footer className="hidden md:block relative z-10 px-8 md:px-5 pb-8 md:pb-10 mx-auto max-w-[1200px] w-full">
+      <p
+        id="onboarding-footer-text"
+        className="text-[#a9cfb6]/70 text-xs"
+      >
+        &copy; 2026 SwearbyHealth&trade;. All rights reserved.
+      </p>
+    </footer>
+  )
+}
+
 export function useOnboardingChrome() {
   const ctx = useContext(OnboardingChromeContext)
   if (!ctx) {

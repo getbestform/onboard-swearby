@@ -87,7 +87,7 @@ export function PasswordForm({
       {/* Welcome header */}
       <div className="pb-6 border-b border-[#e4e2dd]">
         <p className="text-[10px] uppercase tracking-widest text-[#424843]/50 mb-1">Private Activation</p>
-        <h3 className="font-serif text-3xl text-[#1A3C2A]">Welcome, {firstName}</h3>
+        <h3 className="font-display text-3xl text-[#1A3C2A]">Welcome, {firstName}</h3>
         <p className="text-sm text-[#424843]/70 mt-1">We've prepared your private activation.</p>
         {data.displayName && (
           <p className="text-sm font-medium text-[#1b1c19] mt-3">
