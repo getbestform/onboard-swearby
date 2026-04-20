@@ -11,7 +11,7 @@ const AGREEMENTS: { type: AgreementType; label: string; description: string }[] 
   {
     type: 'msa',
     label: 'Master Services Agreement',
-    description: 'Governs the overall service relationship between your clinic and SwearBy.',
+    description: 'Governs the overall service relationship between your clinic and Swearby.',
   },
   {
     type: 'rev_marketing',

@@ -58,7 +58,7 @@ export function ReviewForm({ token, data, onComplete }: { token: string; data: D
         <p className="text-xs text-red-600 font-medium">{error}</p>
       )}
       <p className="text-[11px] text-[#424843]/60 uppercase tracking-widest leading-relaxed">
-        By submitting you agree to the SwearBy Clinical Master Services Agreement. Our team will review your application and be in touch within 24 hours.
+        By submitting you agree to the Swearby Clinical Master Services Agreement. Our team will review your application and be in touch within 24 hours.
       </p>
       <button type="button" onClick={handleSubmit} disabled={pending}
         className="w-full py-4 bg-[#1A3C2A] text-white text-sm font-bold rounded shadow-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50">

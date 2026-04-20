@@ -35,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Footer */}
         <footer className="px-8 py-4 border-t border-secondary/15">
           <p className="text-[10px] uppercase tracking-widest text-secondary">
-            © 2026 SwearBy Clinical. HIPAA Compliant.
+            © 2026 Swearby Clinical · HIPAA Compliant
           </p>
         </footer>
       </div>

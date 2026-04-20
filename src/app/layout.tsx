@@ -20,7 +20,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'SwearBy Clinical',
+  title: 'Swearby Clinical',
   description: 'Onboarding Portal',
 }
 

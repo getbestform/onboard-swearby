@@ -12,7 +12,7 @@ export function BusinessInfoForm({ data, onChange, errors = {} }: { data: DraftD
         <div className="grid grid-cols-2 gap-6">
           <div className="col-span-2">
             <label className={lbl}>Legal Business Name <span className="text-red-500">*</span></label>
-            <input className={`${field} ${errors.businessName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="e.g. SwearBy Clinical Group LLC" type="text" value={data.businessName ?? ''} onChange={e => onChange({ businessName: e.target.value })} />
+            <input className={`${field} ${errors.businessName ? 'ring-1 ring-red-400 bg-red-50/30' : ''}`} placeholder="e.g. Swearby Clinical Group LLC" type="text" value={data.businessName ?? ''} onChange={e => onChange({ businessName: e.target.value })} />
             {errors.businessName && <p className="text-[11px] text-red-500 mt-1.5">{errors.businessName}</p>}
           </div>
           <div>

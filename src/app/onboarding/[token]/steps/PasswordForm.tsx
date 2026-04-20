@@ -186,7 +186,7 @@ export function PasswordForm({
             }}
           />
           <span className="text-sm text-[#424843] group-hover:text-[#1b1c19] transition-colors">
-            I agree to the SwearBy{' '}
+            I agree to the Swearby{' '}
             <span className="text-[#1A3C2A] underline underline-offset-2">Terms of Service</span>
           </span>
         </label>
@@ -203,7 +203,7 @@ export function PasswordForm({
             }}
           />
           <span className="text-sm text-[#424843] group-hover:text-[#1b1c19] transition-colors">
-            I agree to the SwearBy{' '}
+            I agree to the Swearby{' '}
             <span className="text-[#1A3C2A] underline underline-offset-2">Privacy Policy</span>
           </span>
         </label>

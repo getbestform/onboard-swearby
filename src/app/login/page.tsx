@@ -11,7 +11,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <h1 className="font-display text-3xl text-text-primary mb-2">Clinic onboarding</h1>
         <p className="text-text-secondary text-sm mb-8">
-          Sign in with the email and password from your invite to continue your clinic&apos;s SwearBy onboarding.
+          Sign in with the email and password from your invite to continue your clinic&apos;s Swearby onboarding.
         </p>
 
         <form action={action} className="flex flex-col gap-4">

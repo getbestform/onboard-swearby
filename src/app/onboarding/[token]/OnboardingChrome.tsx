@@ -63,7 +63,7 @@ export function OnboardingFooter() {
         id="onboarding-footer-text"
         className="text-[#a9cfb6]/70 text-xs"
       >
-        &copy; 2026 SwearbyHealth&trade;. All rights reserved.
+        &copy; 2026 Swearby Health&trade;. All rights reserved.
       </p>
     </footer>
   )

@@ -35,7 +35,7 @@ const STEP_META = [
   { title: 'Clinic Foundation',  instruction: { heading: 'Identity Matters',              body: 'Provide the foundational details of your practice. This information will appear on patient communications, prescriptions, and billing statements.', note: 'Proof of Clinic Registration (IRS SS-4 or similar)' } },
   { title: 'Prescriber Details', instruction: { heading: 'Clinical Authority',            body: 'Enter DEA and licensing information for your primary prescriber. All prescribers must be verified before catalog access is granted.',             note: 'DEA Registration Certificate + State Medical License' } },
   { title: 'Drug Catalog Setup', instruction: { heading: 'Your Formulary',                body: 'Enter the drugs, doses, and pricing you intend to dispense. State availability determines where prescriptions can be filled.',                   note: 'State-specific formulary approval may be required' } },
-  { title: 'Intake & Branding',  instruction: { heading: 'Your Practice, Your Identity',  body: 'Upload your clinic logo and brand colors. These appear on patient-facing materials and your SwearBy portal.',                                  note: 'Logo should be PNG or SVG, minimum 512×512px' } },
+  { title: 'Intake & Branding',  instruction: { heading: 'Your Practice, Your Identity',  body: 'Upload your clinic logo and brand colors. These appear on patient-facing materials and your Swearby portal.',                                  note: 'Logo should be PNG or SVG, minimum 512×512px' } },
   { title: 'Onboarding Call',    instruction: { heading: 'Book Your Kickoff',              body: "Schedule a 30-minute onboarding call with our clinical team. We'll walk through your setup, answer questions, and confirm your integration.",   note: 'Calendar powered by Cal.com — video link sent via email' } },
   { title: 'Review & Submit',    instruction: { heading: 'Final Review',                  body: 'Verify all information is accurate before submitting. Our clinical team will review your application within 24 hours.',                          note: 'You will receive a confirmation email upon submission' } },
 ]
@@ -177,7 +177,7 @@ export function OnboardingWizard({ token, initialDraft, ownerName, email, onComp
 
       {/* Top nav */}
       <header className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-8 py-4 border-b border-[#1A3C2A] bg-forest text-cream">
-        <span className="font-display text-xl text-cream">swearby</span>
+        <span className="font-display text-xl text-cream">Swearby</span>
         <div className="flex items-center gap-6">
           {saveStatus === 'saving' && (
             <div className="flex items-center gap-2 text-cream/60">

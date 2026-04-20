@@ -54,7 +54,7 @@ export default function Home() {
       {/* Nav */}
       <header className="sticky top-0 z-50 border-b border-gold/20 bg-forest/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <span className="font-display text-lg font-bold text-cream tracking-tight">swearby</span>
+          <span className="font-display text-lg font-bold text-cream tracking-tight">Swearby</span>
           <Link
             href={CLINIC_DASHBOARD_LOGIN}
             className="flex items-center gap-2 text-xs uppercase tracking-widest font-semibold text-cream border border-gold/40 rounded px-4 h-9 hover:bg-gold/15 hover:border-gold/60 transition-all"
@@ -73,7 +73,7 @@ export default function Home() {
           <p className="text-[10px] uppercase tracking-[0.2em] text-gold mb-5">Clinic Onboarding Portal</p>
           <h1 className="font-display text-5xl md:text-7xl text-cream leading-[1.05] max-w-3xl mb-8">
             Get your clinic<br />
-            <span className="text-gold">set up on swearby.</span>
+            <span className="text-gold">set up on Swearby</span>
           </h1>
           <p className="text-cream/75 text-lg leading-relaxed max-w-xl mb-12">
             This portal guides you through the onboarding process — from credentials and agreements to formulary setup and platform access. Use the access code from your invite email to get started.
@@ -157,7 +157,7 @@ export default function Home() {
         {/* Footer */}
         <footer className="border-t border-gold/20">
           <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
-            <span className="font-display font-bold text-cream/80 text-sm">swearby</span>
+            <span className="font-display font-bold text-cream/80 text-sm">Swearby</span>
             <div className="flex gap-8">
               <Link
                 href={LEGAL_PRIVACY}
@@ -172,7 +172,7 @@ export default function Home() {
                 Terms of Service
               </Link>
             </div>
-            <span className="text-[10px] uppercase tracking-widest text-cream/45">© 2026 SwearBy. HIPAA Compliant.</span>
+            <span className="text-[10px] uppercase tracking-widest text-cream/45">© 2026 Swearby · HIPAA Compliant</span>
           </div>
         </footer>
       </div>
