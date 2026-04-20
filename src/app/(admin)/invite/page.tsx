@@ -34,7 +34,7 @@ function Toast({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed bottom-6 right-6 flex items-start gap-3 bg-white border border-secondary/20 rounded-xl shadow-lg px-4 py-3 w-80 z-50">
       <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-neutral">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-cream">
           <path d="M20 6 9 17l-5-5" />
         </svg>
       </div>
@@ -140,7 +140,7 @@ function NewInviteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
             </p>
             <button
               type="submit" disabled={pending}
-              className="flex items-center gap-2 bg-primary text-neutral text-xs uppercase tracking-widest px-5 h-10 rounded hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
+              className="flex items-center gap-2 bg-primary text-cream text-xs uppercase tracking-widest px-5 h-10 rounded hover:opacity-90 transition-opacity font-medium disabled:opacity-50"
             >
               {pending ? 'Sending…' : 'Send Invite'}
               {!pending && (
@@ -236,7 +236,7 @@ export default function InvitesPage() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-primary text-neutral text-xs uppercase tracking-widest px-5 h-10 rounded hover:opacity-90 transition-opacity font-medium"
+          className="flex items-center gap-2 bg-primary text-cream text-xs uppercase tracking-widest px-5 h-10 rounded hover:opacity-90 transition-opacity font-medium"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14M5 12h14" />

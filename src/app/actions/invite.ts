@@ -427,6 +427,7 @@ export async function fetchAgreements(
 export async function requestSigningUrl(
   token: string,
   agreementType: 'msa' | 'rev_marketing' | 'baa',
+  returnUrl?: string,
 ): Promise<{ signingUrl: string } | { error: string }> {
   if (!process.env.VERTI_API_URL || !process.env.PARTNER_INVITE_API_KEY) {
     return { error: 'Server misconfiguration.' }
@@ -436,7 +437,11 @@ export async function requestSigningUrl(
       `${process.env.VERTI_API_URL}/api/partner-invites/${token}/agreements/${agreementType}/sign`,
       {
         method: 'POST',
-        headers: { Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}` },
+        headers: {
+          Authorization: `Bearer ${process.env.PARTNER_INVITE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: returnUrl ? JSON.stringify({ returnUrl }) : undefined,
       },
     )
     const data = await res.json().catch(() => ({}))

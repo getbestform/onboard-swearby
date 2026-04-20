@@ -7,7 +7,9 @@ import { useSearchParams } from 'next/navigation'
  * DocuSign embedded signing return page.
  *
  * DocuSign redirects here after the signer completes (or declines / times out).
- * This page runs in a popup — it notifies the opener and closes itself.
+ * This page may be loaded inside:
+ *   - an iframe embedded in the wizard (`window.parent`), or
+ *   - a popup window opened by the wizard (`window.opener`, legacy fallback).
  *
  * URL: /onboarding/[token]/agreements/return?type=msa&event=signing_complete
  */
@@ -17,14 +19,21 @@ export default function DocuSignReturnPage() {
   const event  = params.get('event') // signing_complete | decline | cancel | ttl_expired
 
   useEffect(() => {
-    if (window.opener) {
-      window.opener.postMessage(
-        { type: 'docusign-complete', agreementType: type, event },
-        window.location.origin,
-      )
+    const payload = { type: 'docusign-complete', agreementType: type, event }
+    const origin  = window.location.origin
+
+    // Iframe embedding: parent !== self when we're framed.
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(payload, origin)
     }
-    // Small delay so the message is delivered before close
-    const t = setTimeout(() => window.close(), 300)
+    // Popup fallback (preserved for legacy flow and manual "Open in new tab").
+    if (window.opener) {
+      window.opener.postMessage(payload, origin)
+    }
+
+    const t = setTimeout(() => {
+      if (window.opener) window.close()
+    }, 300)
     return () => clearTimeout(t)
   }, [type, event])
 
